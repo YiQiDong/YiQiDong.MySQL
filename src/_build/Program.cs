@@ -10,6 +10,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 var appFolder = QbFolder.GetAppFolder();
 if (appFolder == Environment.CurrentDirectory)
@@ -25,16 +27,22 @@ Console.WriteLine("----------------------------------");
 Console.WriteLine("  欢迎使用MySQL编译脚本");
 Console.WriteLine("----------------------------------");
 Version version;
-while (true)
+HttpClient httpClient = new HttpClient();
+
+Console.WriteLine("请选择要编译的MySQL版本：");
+var mysqlVersion = QbSelect.ArrowSelect(new Dictionary<string, string>()
 {
-    Console.Write("请输入要编译的MySQL版本号：");
-    var versionStr = Console.ReadLine().Trim();
-    if (string.IsNullOrEmpty(versionStr))
-        continue;
-    if (!Version.TryParse(versionStr, out version))
-        continue;
-    break;
-}
+    ["5.7"] = "5.7",
+    ["8.0"] = "8.0"
+}.ToArray(), selectedForegroundColor: ConsoleColor.Green);
+
+Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
+var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
+var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
+var mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+version= Version.Parse(mysqlVersionStr);
+Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
+
 Console.WriteLine("请选择镜像站：");
 var mirrorUrl = QbSelect.ArrowSelect(new Dictionary<string, string>()
 {
@@ -58,7 +66,6 @@ if (Directory.Exists(folder))
 }
 Directory.CreateDirectory(folder);
 
-HttpClient httpClient = new HttpClient();
 switch (platform)
 {
     case "win_x64":
@@ -73,6 +80,7 @@ switch (platform)
                 ns.CopyTo(fs);
             Console.WriteLine($"正在解压文件[{file}]...");
             ZipFile.ExtractToDirectory(file, folder);
+            Thread.Sleep(1000);
             Directory.Move(Path.Combine(folder, Path.GetFileNameWithoutExtension(file)), winFolder);
             QbFolder.DeleteFolders(winFolder, "docs");
             QbFolder.DeleteFolders(winFolder, "include");
@@ -127,6 +135,7 @@ switch (platform)
                         });
                     }
                 }
+                Thread.Sleep(1000);
                 Directory.Move(Path.Combine(folder, Path.GetFileNameWithoutExtension(tarFile)), linuxFolder);
                 File.Delete(tarFile);
             }
@@ -160,7 +169,7 @@ switch (platform)
                         });
                     }
                 }
-
+                Thread.Sleep(1000);
                 Directory.Move(Path.Combine(folder, Path.GetFileNameWithoutExtension(tarFile)), linuxFolder);
                 File.Delete(tarFile);
             }
