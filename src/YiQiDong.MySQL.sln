@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.32319.34
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YiQiDong.MySQL", "YiQiDong.MySQL\YiQiDong.MySQL.csproj", "{45C1A3DC-0694-4D61-A841-515704357734}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_build", "_build\_build.csproj", "{4548ED1D-5906-436F-9C66-D51684CD02C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "_build\_build.csproj", "{4548ED1D-5906-436F-9C66-D51684CD02C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
