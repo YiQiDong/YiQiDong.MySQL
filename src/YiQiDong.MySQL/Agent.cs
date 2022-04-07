@@ -45,6 +45,7 @@ namespace YiQiDong.MySQL
 
         public override void Start()
         {
+            base.Start();
             Task.Run(() =>
             {
                 try
@@ -219,7 +220,8 @@ namespace YiQiDong.MySQL
             if (Process == null
                 || Process.HasExited)
                 return;
-            ProcessUtils.KillProcessTree(Process);            
+            ProcessUtils.KillProcessTree(Process);
+            base.Stop();
         }
     }
 }
