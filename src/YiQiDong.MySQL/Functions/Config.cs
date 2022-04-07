@@ -6,8 +6,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using YiQiDong.MySQL.Utils;
-using YiQiDong.Core.Utils;
 using YiQiDong.Protocol.V1.Model;
+using YiQiDong.Core;
 
 namespace YiQiDong.MySQL.Functions
 {

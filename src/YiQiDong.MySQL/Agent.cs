@@ -159,7 +159,6 @@ namespace YiQiDong.MySQL
             Process.BeginErrorReadLine();
             ConsoleOutputHandler?.Invoke($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
-            RaiseEvent_FunctionListChanged();
         }
 
         private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
@@ -193,8 +192,6 @@ namespace YiQiDong.MySQL
 
         public override void Stop()
         {
-            RaiseEvent_FunctionListChanged();
-
             //发送shutdown
             string host;
             int port;

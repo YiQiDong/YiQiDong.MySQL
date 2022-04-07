@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 using YiQiDong.Protocol.V1.Model;
-using MySql.Data;
 using System.Linq;
-using YiQiDong.MySQL.Utils;
 using System.Collections;
 using Quick.Fields;
 using MySql.Data.MySqlClient;
+using YiQiDong.Core;
 
 namespace YiQiDong.MySQL.Functions
 {

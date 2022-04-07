@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using YiQiDong.Core;
 using YiQiDong.Protocol.V1.Model;
 
 namespace YiQiDong.MySQL.Functions
