@@ -3,12 +3,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
+	<RollForward>Major</RollForward>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="8.0.28" />
-    <PackageReference Include="YiQiDong.Agent" Version="1.1.6" />
+    <PackageReference Include="YiQiDong.Agent" Version="1.1.10" />
   </ItemGroup>
 
   <ItemGroup>
