@@ -9,6 +9,7 @@ using YiQiDong.MySQL.Functions;
 using YiQiDong.Core;
 using YiQiDong.Core.Utils;
 using YiQiDong.Protocol.V1.Model;
+using YiQiDong.Agent;
 
 namespace YiQiDong.MySQL
 {
@@ -54,14 +55,14 @@ namespace YiQiDong.MySQL
                 }
                 catch (Exception ex)
                 {
-                    ConsoleOutputHandler?.Invoke($"启动容器时失败，原因：{ex}");
+                    AgentContext.Instance.LogError($"启动容器时失败，原因：{ex}");
                 }
             });
         }
 
         private bool IsRunAsRoot()
         {
-            ConsoleOutputHandler?.Invoke("正在检查当前用户...");
+            AgentContext.Instance.LogInfo("正在检查当前用户...");
             var tmpPsi = new ProcessStartInfo("whoami");
             tmpPsi.RedirectStandardOutput = true;
             var tmpProcess = Process.Start(tmpPsi);
@@ -71,7 +72,7 @@ namespace YiQiDong.MySQL
 
         private void outputNotSupportOsAndArchitecture()
         {
-            ConsoleOutputHandler?.Invoke($"不支持的操作系统[{RuntimeInformation.OSDescription}]+平台架构[{RuntimeInformation.OSArchitecture}]。");
+            AgentContext.Instance.LogWarn($"不支持的操作系统[{RuntimeInformation.OSDescription}]+平台架构[{RuntimeInformation.OSArchitecture}]。");
         }
 
         private void innnerStart()
@@ -142,8 +143,8 @@ namespace YiQiDong.MySQL
                 outputNotSupportOsAndArchitecture();
                 return;
             }
-            ConsoleOutputHandler?.Invoke("Process Filename：" + process_filename);
-            ConsoleOutputHandler?.Invoke("Process Arguments：" + process_arguments);
+            AgentContext.Instance.LogInfo("Process Filename：" + process_filename);
+            AgentContext.Instance.LogInfo("Process Arguments：" + process_arguments);
 
             ProcessStartInfo psi = new ProcessStartInfo(process_filename, process_arguments);
             psi.RedirectStandardOutput = true;
@@ -158,7 +159,7 @@ namespace YiQiDong.MySQL
             Process.ErrorDataReceived += Process_ErrorDataReceived;
             Process.BeginOutputReadLine();
             Process.BeginErrorReadLine();
-            ConsoleOutputHandler?.Invoke($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
+            AgentContext.Instance.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
         }
 
@@ -166,14 +167,14 @@ namespace YiQiDong.MySQL
         {
             if (e.Data == null)
                 return;
-            ConsoleOutputHandler?.Invoke(e.Data);
+            AgentContext.Instance.LogInfo(e.Data);
         }
 
         private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
                 return;
-            ConsoleOutputHandler?.Invoke(e.Data);
+            AgentContext.Instance.LogError(e.Data);
         }
 
         private void delayStart()
@@ -186,7 +187,7 @@ namespace YiQiDong.MySQL
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            ConsoleOutputHandler?.Invoke($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
+            AgentContext.Instance.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
             Process = null;
             delayStart();
         }
