@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="8.0.28" />
-    <PackageReference Include="YiQiDong.Agent" Version="1.1.12" />
+    <PackageReference Include="YiQiDong.Agent" Version="1.1.14" />
   </ItemGroup>
 
   <ItemGroup>
