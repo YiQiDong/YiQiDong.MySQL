@@ -9,7 +9,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
 		<PackageReference Include="Quick.Build" Version="1.0.6" />
-		<PackageReference Include="SharpCompress" Version="0.31.0" />
+		<PackageReference Include="SharpCompress" Version="0.32.1" />
 	</ItemGroup>
 
 </Project>
