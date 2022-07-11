@@ -203,10 +203,11 @@ ZipFile.ExtractToDirectory(dataFile, folder);
 
 Console.WriteLine("正在发布YiQiDong.MySQL项目...");
 QbCommand.Run("dotnet", $"publish -c Release -o {folder} src/YiQiDong.MySQL");
-QbJson.WriteString(Path.Combine(folder, "YiQiDong.Image.json"), "Version", version.ToString());
+var versionString = $"{version}_{DateTime.Now.ToString("yyyyMMdd")}";
+QbJson.WriteString(Path.Combine(folder, "YiQiDong.Image.json"), "Version", versionString);
 QbJson.Write(Path.Combine(folder, "YiQiDong.Image.json"), "Platform", new[] { platform });
 
-var outFile = $"bin/MySQL_{version}_{platform}_{DateTime.Now.ToString("yyyyMMdd")}.ymg";
+var outFile = $"bin/MySQL_{versionString}_{platform}.ymg";
 Console.WriteLine("正在制作弈启动镜像...");
 using (var archive = SharpCompress.Archives.Zip.ZipArchive.Create())
 {

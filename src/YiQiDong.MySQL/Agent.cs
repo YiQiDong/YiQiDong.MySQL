@@ -10,6 +10,7 @@ using YiQiDong.Core;
 using YiQiDong.Core.Utils;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Agent;
+using Mono.Unix.Native;
 
 namespace YiQiDong.MySQL
 {
@@ -137,6 +138,8 @@ namespace YiQiDong.MySQL
                         outputNotSupportOsAndArchitecture();
                         return;
                 }
+                //为进程添加可执行权限
+                Syscall.chmod(process_filename, FilePermissions.S_IRWXU | FilePermissions.S_IRGRP | FilePermissions.S_IXGRP | FilePermissions.S_IROTH | FilePermissions.S_IXOTH);
             }
             else
             {
@@ -174,7 +177,7 @@ namespace YiQiDong.MySQL
         {
             if (e.Data == null)
                 return;
-            AgentContext.Instance.LogError(e.Data);
+            AgentContext.Instance.LogInfo(e.Data);
         }
 
         private void delayStart()

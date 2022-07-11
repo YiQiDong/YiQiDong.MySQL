@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
     <PackageReference Include="MySql.Data" Version="8.0.29" />
     <PackageReference Include="YiQiDong.Agent" Version="2.2.13" />
   </ItemGroup>
