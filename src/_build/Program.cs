@@ -36,12 +36,22 @@ var mysqlVersion = QbSelect.ArrowSelect(new Dictionary<string, string>()
     ["8.0"] = "8.0"
 }.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 
-Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
-var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
-var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
-var mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
-version= Version.Parse(mysqlVersionStr);
-Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
+//Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
+//var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
+//var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
+//var mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+//version= Version.Parse(mysqlVersionStr);
+//Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
+switch(mysqlVersion)
+{
+    case "5.7":
+        version = Version.Parse("5.7.38");
+        break;
+    case "8.0":
+    default:
+        version = Version.Parse("8.0.28");
+        break;
+}
 
 Console.WriteLine("请选择镜像站：");
 var mirrorUrl = QbSelect.ArrowSelect(new Dictionary<string, string>()

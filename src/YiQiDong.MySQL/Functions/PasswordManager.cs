@@ -89,7 +89,10 @@ namespace YiQiDong.MySQL.Functions
 
                 var connectionString = $"Server={Config.Instance.GetConnectHost()};Port={Config.Instance.Properties["port"]};Database=mysql;Uid=root;Pwd={oldPassword};";
                 var sql = string.Empty;
-                var server_version = new Version(Agent.Instance.ContainerInfo.Image.Version);
+                var server_version_string = Agent.Instance.ContainerInfo.Image.Version;
+                if (server_version_string.Contains("_"))
+                    server_version_string = server_version_string.Substring(0, server_version_string.IndexOf("_"));
+                var server_version = new Version(server_version_string);
                 if (server_version >= new Version(8, 0, 0))
                     sql = $"alter user 'root'@'%' identified with mysql_native_password by '{newPassword}';flush privileges;";
                 else
