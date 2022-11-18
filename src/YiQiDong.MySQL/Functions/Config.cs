@@ -204,7 +204,7 @@ namespace YiQiDong.MySQL.Functions
                 else
                     RefreshProperties(dataFolder);
                 request.Fields = innerGet(null).Select(t => t.ToPost()).ToArray();
-                request.Fields[0].Children[0].Children[0].Value = dataFolder;
+                request.Fields[0].Value = dataFolder;
             }
             var list = innerGet(request);
             if (request.IsFieldIdsMatch("Save"))
@@ -213,7 +213,7 @@ namespace YiQiDong.MySQL.Functions
                 {
                     if (File.Exists(containerConfigFile))
                     {
-                        var dataFolder = request.GetFieldValue("tab", "Basic", "DataFolder");
+                        var dataFolder = request.GetFieldValue("DataFolder");
                         var dataFolderConfigFile = Path.Combine(containerFolder, DATA_FOLDER_CONFIG_FILE);
                         if (string.IsNullOrEmpty(dataFolder))
                         {
