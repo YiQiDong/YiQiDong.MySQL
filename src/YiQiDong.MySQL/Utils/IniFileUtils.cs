@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using YiQiDong.Protocol.V1.Model;
 
@@ -27,8 +28,12 @@ namespace YiQiDong.MySQL.Utils
             }
             return properties;
         }
-
         public static void Save(string file, FieldForPost[] fields)
+        {
+            Save(file, fields.ToDictionary(t => t.Id, t => t.Value));
+        }
+
+        public static void Save(string file, Dictionary<string, string> fieldDict)
         {
             var lines = File.ReadAllLines(file);
             for (var i = 0; i < lines.Length; i++)
@@ -42,14 +47,8 @@ namespace YiQiDong.MySQL.Utils
                 if (spIndex <= 0)
                     continue;
                 var key = line.Substring(0, spIndex);
-                foreach (var field in fields)
-                {
-                    if (field.Id == key)
-                    {
-                        lines[i] = $"{key}={field.Value}";
-                        break;
-                    }
-                }
+                if (fieldDict.ContainsKey(key))
+                    lines[i] = $"{key}={fieldDict[key]}";
             }
             File.WriteAllLines(file, lines);
         }

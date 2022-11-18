@@ -34,13 +34,8 @@ namespace YiQiDong.MySQL
             AddFunction(new Functions.Config("配置修改",imageFolder, containerFolder),false);
             AddFunction(new Functions.Config("配置查看", imageFolder, containerFolder), true);
 
-            AddFunction(new Functions.PasswordManager(imageFolder, containerFolder), true);
+            AddFunction(new Functions.PasswordManager(), true);
             AddFunction(new Functions.SqlQuery());
-
-            //检查复制data目录
-            FolderUtils.CopyFolder(Path.Combine(imageFolder, "data"), Path.Combine(containerFolder, "data"));
-            //检查复制my.ini文件
-            FolderUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), containerFolder);
         }
 
         public override void Start()
@@ -83,6 +78,11 @@ namespace YiQiDong.MySQL
 
             var imageFolder = ImagePathUtils.GetImageFolder(ContainerInfo.ImageId);
             var dataFolder = Functions.Config.Instance.GetDataFolder();
+
+            //检查复制data目录
+            FolderUtils.CopyFolder(Path.Combine(imageFolder, "data"), Path.Combine(dataFolder, "data"));
+            //检查复制my.ini文件
+            FolderUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
 
             var process_filename = "";
             var process_arguments = $"--defaults-file=\"{Path.Combine(dataFolder, "my.ini")}\" --datadir=\"{Path.Combine(dataFolder, "data")}\"";
@@ -204,7 +204,7 @@ namespace YiQiDong.MySQL
             host = Functions.Config.Instance.GetConnectHost();
             port = Functions.Config.Instance.GetConnectPort();
             user = "root";
-            password = Functions.PasswordManager.Instance.Properties["password"];
+            password = Functions.Config.Instance.GetPassword();
             try
             {
                 var connectionString = $"Server={host};Port={port};Database=mysql;Uid={user};Pwd={password};";

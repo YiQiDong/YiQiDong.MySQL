@@ -14,52 +14,22 @@ namespace YiQiDong.MySQL.Functions
 {
     class PasswordManager : AbstractFunction
     {
-        public const string CONFIG_FILE = "my_password.ini";
-        public static PasswordManager Instance { get; private set; }
-        private string containerFolder;
-        
         public override string Name => "密码管理";
-        public Dictionary<string, string> Properties = new Dictionary<string, string>();
-        private string containerConfigFile;
-
-        public void RefreshProperties()
-        {
-            if (File.Exists(containerConfigFile))
-                Properties = IniFileUtils.Load(containerConfigFile);
-        }
-
-        public PasswordManager(string imageFolder, string containerFolder)
-        {
-            Instance = this;
-            this.containerFolder = containerFolder;
-            containerConfigFile = Path.Combine(containerFolder, CONFIG_FILE);
-            if (!File.Exists(containerConfigFile))
-            {
-                var folder = Path.GetDirectoryName(containerConfigFile);
-                if (!Directory.Exists(folder))
-                    Directory.CreateDirectory(folder);
-                var imageConfigFile = Path.Combine(imageFolder, CONFIG_FILE);
-                if (File.Exists(imageConfigFile))
-                    File.Copy(imageConfigFile, containerConfigFile, true);
-            }
-            RefreshProperties();
-        }
 
         private List<FieldForGet> innerGet(FunctionRequest request)
         {
             List<FieldForGet> list = new List<FieldForGet>();
             string tmpKey;
             tmpKey = "password";
-            if (Properties.ContainsKey(tmpKey))
-                list.Add(new FieldForGet()
-                {
-                    Id = tmpKey,
-                    Name = "密码",
-                    Type = FieldType.InputText,
-                    Value = request == null ? Properties[tmpKey] : request.GetFieldValue(tmpKey),
-                    Input_AllowBlank = false,
-                    Description = "root用户的密码，默认为:123456"
-                });
+            list.Add(new FieldForGet()
+            {
+                Id = tmpKey,
+                Name = "密码",
+                Type = FieldType.InputText,
+                Value = request == null ? Config.Instance.GetPassword() : request.GetFieldValue(tmpKey),
+                Input_AllowBlank = false,
+                Description = "root用户的密码，默认为:123456"
+            });
             return list;
         }
 
@@ -84,7 +54,7 @@ namespace YiQiDong.MySQL.Functions
             var list = innerGet(request);
             if (request.IsFieldIdsMatch("Save"))
             {
-                var oldPassword = Properties["password"];
+                var oldPassword = Config.Instance.GetPassword();
                 var newPassword = request.GetFieldValue("password");
 
                 var connectionString = $"Server={Config.Instance.GetConnectHost()};Port={Config.Instance.Properties["port"]};Database=mysql;Uid=root;Pwd={oldPassword};";
@@ -109,7 +79,7 @@ namespace YiQiDong.MySQL.Functions
                 //然后再保存到配置文件
                 try
                 {
-                    Save(request.Fields);
+                    Config.Instance.UpdatePassword(newPassword);
                     list.Add(new FieldForGet()
                     {
                         Name = "修改成功",
@@ -117,7 +87,7 @@ namespace YiQiDong.MySQL.Functions
                         Type = FieldType.MessageBox
                     });
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     list.Add(new FieldForGet()
                     {
@@ -130,15 +100,6 @@ namespace YiQiDong.MySQL.Functions
                 addSaveButton(list);
             }
             return list.ToArray();
-        }
-
-        public void Save(FieldForPost[] fields)
-        {
-            if (!File.Exists(containerConfigFile))
-                throw new IOException($"配置文件[{CONFIG_FILE}]不存在！");
-            IniFileUtils.Save(containerConfigFile, fields);
-            //保存成功后重新加载配置文件
-            Properties = IniFileUtils.Load(containerConfigFile);
         }
 
         private void addSaveButton(List<FieldForGet> list)

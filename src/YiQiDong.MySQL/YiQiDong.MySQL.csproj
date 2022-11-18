@@ -17,9 +17,6 @@
     <None Update="my.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="my_password.ini">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="YiQiDong.Image.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

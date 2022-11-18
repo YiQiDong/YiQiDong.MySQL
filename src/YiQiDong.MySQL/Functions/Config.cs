@@ -9,6 +9,7 @@ using YiQiDong.MySQL.Utils;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
 using Google.Protobuf.WellKnownTypes;
+using YiQiDong.Core.Utils;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -30,6 +31,7 @@ namespace YiQiDong.MySQL.Functions
         {
             if (!Directory.Exists(dataFolder))
                 return;
+            
             containerConfigFile = Path.Combine(dataFolder, CONFIG_FILE);
             if (!File.Exists(containerConfigFile))
             {
@@ -93,15 +95,23 @@ namespace YiQiDong.MySQL.Functions
             return int.Parse(Properties["port"]);
         }
 
+        public string GetPassword()
+        {
+            if (Properties.ContainsKey("password"))
+                return Properties["password"];
+            return "123456";
+        }
+
+        public void UpdatePassword(string password)
+        {
+            Properties["password"] = password;
+            IniFileUtils.Save(containerConfigFile, Properties);
+        }
+
         private List<FieldForGet> innerGet(FunctionRequest request, bool isReadOnly = false)
         {
-            List<FieldForGet> list = new List<FieldForGet>();
-            if (!File.Exists(containerConfigFile))
-            {
-                list.Add(new FieldForGet() { Name = "失败", Description = $"配置文件[{CONFIG_FILE}]不存在！", Input_ReadOnly = true, Type = FieldType.Alert });
-                return list;
-            }
-            Properties = IniFileUtils.Load(containerConfigFile);
+            List<FieldForGet> list = new List<FieldForGet>();            
+            RefreshProperties(GetDataFolder());
 
             string tmpKey;
 
@@ -254,8 +264,8 @@ namespace YiQiDong.MySQL.Functions
                         Input_ReadOnly = true
                     });
                 }
-                addSaveButton(list);
             }
+            addSaveButton(list);
             return list.ToArray();
         }
 

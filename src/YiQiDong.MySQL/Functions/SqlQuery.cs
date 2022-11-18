@@ -151,7 +151,7 @@ namespace YiQiDong.MySQL.Functions
                         host = Config.Instance.GetConnectHost();
                         port = Config.Instance.GetConnectPort();
                         user = "root";
-                        password = PasswordManager.Instance.Properties["password"];
+                        password = Functions.Config.Instance.GetPassword();
                         break;
                     case "Other":
                         host = request.GetFieldValue("tab", "ConnectionInfo", "Host");
