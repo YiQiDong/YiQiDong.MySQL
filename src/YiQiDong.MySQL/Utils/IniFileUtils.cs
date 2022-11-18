@@ -30,7 +30,11 @@ namespace YiQiDong.MySQL.Utils
         }
         public static void Save(string file, FieldForPost[] fields)
         {
-            Save(file, fields.ToDictionary(t => t.Id, t => t.Value));
+            Save(
+                file,
+                fields
+                .Where(t => !string.IsNullOrEmpty(t.Id))
+                .ToDictionary(t => t.Id, t => t.Value));
         }
 
         public static void Save(string file, Dictionary<string, string> fieldDict)

@@ -111,10 +111,8 @@ namespace YiQiDong.MySQL.Functions
         private List<FieldForGet> innerGet(FunctionRequest request, bool isReadOnly = false)
         {
             List<FieldForGet> list = new List<FieldForGet>();            
-            RefreshProperties(GetDataFolder());
-
+            
             string tmpKey;
-
             tmpKey = "DataFolder";
             var dataFolder = request == null ? GetDataFolder_ForConfig() : request.GetFieldValue(tmpKey);
             var isDataFolderExists = string.IsNullOrEmpty(dataFolder) || Directory.Exists(dataFolder);
@@ -198,6 +196,7 @@ namespace YiQiDong.MySQL.Functions
         public override FieldForGet[] Get()
         {
             var isReadOnly = Agent.Instance.ContainerInfo.AutoStart;
+            RefreshProperties(GetDataFolder());
             var list = innerGet(null, isReadOnly);
             if (!isReadOnly)
                 addSaveButton(list);
@@ -240,7 +239,7 @@ namespace YiQiDong.MySQL.Functions
                         list.Add(new FieldForGet()
                         {
                             Name = "保存成功",
-                            Description = $"配置文件[{CONFIG_FILE}]保存成功！",
+                            Description = $"配置文件[{containerConfigFile}]保存成功！",
                             Type = FieldType.MessageBox
                         });
                     }
@@ -249,7 +248,7 @@ namespace YiQiDong.MySQL.Functions
                         list.Add(new FieldForGet()
                         {
                             Name = "错误",
-                            Description = $"配置文件[{CONFIG_FILE}]不存在！",
+                            Description = $"配置文件[{containerConfigFile}]不存在！",
                             Type = FieldType.Alert
                         });
                     }
@@ -259,7 +258,7 @@ namespace YiQiDong.MySQL.Functions
                     list.Add(new FieldForGet()
                     {
                         Name = "错误",
-                        Description = ex.Message,
+                        Description = ExceptionUtils.GetExceptionMessage(ex),
                         Type = FieldType.Alert,
                         Input_ReadOnly = true
                     });
