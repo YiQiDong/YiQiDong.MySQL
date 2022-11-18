@@ -106,7 +106,7 @@ namespace YiQiDong.MySQL.Functions
             string tmpKey;
 
             tmpKey = "DataFolder";
-            var dataFolder = request == null ? GetDataFolder_ForConfig() : request.GetFieldValue("tab", "Basic", tmpKey);
+            var dataFolder = request == null ? GetDataFolder_ForConfig() : request.GetFieldValue(tmpKey);
             var isDataFolderExists = string.IsNullOrEmpty(dataFolder) || Directory.Exists(dataFolder);
             list.Add(new FieldForGet()
             {
