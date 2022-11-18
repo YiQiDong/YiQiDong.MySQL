@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using YiQiDong.MySQL.Functions;
 using YiQiDong.Core;
 using YiQiDong.Core.Utils;
 using YiQiDong.Protocol.V1.Model;
@@ -32,12 +31,11 @@ namespace YiQiDong.MySQL
             var imageFolder = ImagePathUtils.GetImageFolder(ContainerInfo.ImageId);
             var containerFolder = ContainerPathUtils.GetContainerFolder(ContainerInfo.Id);
 
-            AddFunction(new Config("配置修改",imageFolder, containerFolder),false);
-            AddFunction(new Config("配置查看", imageFolder, containerFolder), true);
+            AddFunction(new Functions.Config("配置修改",imageFolder, containerFolder),false);
+            AddFunction(new Functions.Config("配置查看", imageFolder, containerFolder), true);
 
-            AddFunction(new AdvancedConfig(containerFolder));
-            AddFunction(new PasswordManager(imageFolder, containerFolder), true);
-            AddFunction(new SqlQuery());
+            AddFunction(new Functions.PasswordManager(imageFolder, containerFolder), true);
+            AddFunction(new Functions.SqlQuery());
 
             //检查复制data目录
             FolderUtils.CopyFolder(Path.Combine(imageFolder, "data"), Path.Combine(containerFolder, "data"));
@@ -84,10 +82,10 @@ namespace YiQiDong.MySQL
                 return;
 
             var imageFolder = ImagePathUtils.GetImageFolder(ContainerInfo.ImageId);
-            var containerFolder = ContainerPathUtils.GetContainerFolder(ContainerInfo.Id);
+            var dataFolder = Functions.Config.Instance.GetDataFolder();
 
             var process_filename = "";
-            var process_arguments = $"--defaults-file=\"{Path.Combine(containerFolder, "my.ini")}\" --datadir=\"{Path.Combine(containerFolder, "data")}\"";
+            var process_arguments = $"--defaults-file=\"{Path.Combine(dataFolder, "my.ini")}\" --datadir=\"{Path.Combine(dataFolder, "data")}\"";
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -112,7 +110,7 @@ namespace YiQiDong.MySQL
                             if (IsRunAsRoot())
                                 process_arguments += " --user=root";
                             process_arguments += $" --basedir=\"{Path.Combine(imageFolder, "mysql-linux_x64")}\"";
-                            process_arguments += $" --socket=\"{Path.Combine(containerFolder, "mysqld.sock")}\"";
+                            process_arguments += $" --socket=\"{Path.Combine(dataFolder, "mysqld.sock")}\"";
 
                             //检查文件
                             FolderUtils.CopyFile(Path.Combine(imageFolder, "mysql-linux_x64", "lib", "libaio.so.1"), "/usr/lib/x86_64-linux-gnu");
@@ -125,7 +123,7 @@ namespace YiQiDong.MySQL
                             if (IsRunAsRoot())
                                 process_arguments += " --user=root";
                             process_arguments += $" --basedir=\"{Path.Combine(imageFolder, "mysql-linux_arm")}\"";
-                            process_arguments += $" --socket=\"{Path.Combine(containerFolder, "mysqld.sock")}\"";
+                            process_arguments += $" --socket=\"{Path.Combine(dataFolder, "mysqld.sock")}\"";
                             process_arguments += " --secure-file-priv=\"\"";
                             process_arguments += " --console";
 
@@ -154,7 +152,7 @@ namespace YiQiDong.MySQL
             psi.RedirectStandardError = true;
             psi.RedirectStandardInput = true;
             psi.UseShellExecute = false;
-            psi.WorkingDirectory = containerFolder;
+            psi.WorkingDirectory = dataFolder;
 
             Process = Process.Start(psi);
             Process.EnableRaisingEvents = true;
@@ -203,10 +201,10 @@ namespace YiQiDong.MySQL
             string user;
             string password;
 
-            host = Config.Instance.GetConnectHost();
-            port = Config.Instance.GetConnectPort();
+            host = Functions.Config.Instance.GetConnectHost();
+            port = Functions.Config.Instance.GetConnectPort();
             user = "root";
-            password = PasswordManager.Instance.Properties["password"];
+            password = Functions.PasswordManager.Instance.Properties["password"];
             try
             {
                 var connectionString = $"Server={host};Port={port};Database=mysql;Uid={user};Pwd={password};";
