@@ -8,6 +8,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,7 +17,7 @@ using System.Threading;
 var appFolder = QbFolder.GetAppFolder();
 if (appFolder == Environment.CurrentDirectory)
     Environment.CurrentDirectory = Path.GetFullPath("../../../../../");
-
+//https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.42-winx64.zip
 string URL_TEMPLATE_WINDOWS = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.zip";
 string URL_TEMPLATE_LINUX_V5_7 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.gz";
 string URL_TEMPLATE_LINUX_V8 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.xz";
@@ -28,6 +29,24 @@ Console.WriteLine("  欢迎使用MySQL编译脚本");
 Console.WriteLine("----------------------------------");
 Version version;
 HttpClient httpClient = new HttpClient();
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("text/html"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/xhtml+xml"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/xml;q=0.9"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("image/avif"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("image/webp"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("image/apng"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("*/*;q=0.8"));
+httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/signed-exchange;v=b3;q=0.7"));
+httpClient.DefaultRequestHeaders.AcceptEncoding.Add(StringWithQualityHeaderValue.Parse("*"));
+httpClient.DefaultRequestHeaders.AcceptLanguage.Add(StringWithQualityHeaderValue.Parse("en-US"));
+httpClient.DefaultRequestHeaders.AcceptLanguage.Add(StringWithQualityHeaderValue.Parse("en;q=0.9"));
+httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
+httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Mozilla/5.0"));
+httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("(Windows NT 10.0; Win64; x64)"));
+httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("AppleWebKit/537.36"));
+httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("(KHTML, like Gecko)"));
+httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Chrome/113.0.0.0"));
+httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Safari/537.36"));
 
 Console.WriteLine("请选择要编译的MySQL版本：");
 var mysqlVersion = QbSelect.ArrowSelect(new Dictionary<string, string>()
@@ -36,29 +55,17 @@ var mysqlVersion = QbSelect.ArrowSelect(new Dictionary<string, string>()
     ["8.0"] = "8.0"
 }.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 
-//Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
-//var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
-//var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
-//var mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
-//version= Version.Parse(mysqlVersionStr);
-//Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
-switch(mysqlVersion)
-{
-    case "5.7":
-        version = Version.Parse("5.7.38");
-        break;
-    case "8.0":
-    default:
-        version = Version.Parse("8.0.28");
-        break;
-}
+Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
+var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
+var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
+var mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+version= Version.Parse(mysqlVersionStr);
+Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
 
 Console.WriteLine("请选择镜像站：");
 var mirrorUrl = QbSelect.ArrowSelect(new Dictionary<string, string>()
 {
-    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站",
-    ["http://mirrors.163.com/mysql/Downloads/"] = "网易开源镜像站",
-    ["https://mirrors.cloud.tencent.com/mysql/downloads/"] = "腾讯软件源"
+    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站"
 }.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 
 Console.WriteLine("请选择运行平台：");
