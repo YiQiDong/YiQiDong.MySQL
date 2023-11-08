@@ -10,6 +10,7 @@ using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
 using Google.Protobuf.WellKnownTypes;
 using YiQiDong.Core.Utils;
+using YiQiDong.Agent;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -195,7 +196,7 @@ namespace YiQiDong.MySQL.Functions
 
         public override FieldForGet[] Get()
         {
-            var isReadOnly = Agent.Instance.ContainerInfo.AutoStart;
+            var isReadOnly = AgentContext.Container.AutoStart;
             RefreshProperties(GetDataFolder());
             var list = innerGet(null, isReadOnly);
             if (!isReadOnly)

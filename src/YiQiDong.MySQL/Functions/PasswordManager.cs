@@ -9,6 +9,7 @@ using System.Text;
 using YiQiDong.MySQL.Utils;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
+using YiQiDong.Agent;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -36,7 +37,7 @@ namespace YiQiDong.MySQL.Functions
         public override FieldForGet[] Get()
         {
             //当容器未启动时，此功能不可用
-            if (!Agent.Instance.ContainerInfo.AutoStart)
+            if (!AgentContext.Container.AutoStart)
             {
                 return new FieldForGet[]
                 {
@@ -59,7 +60,7 @@ namespace YiQiDong.MySQL.Functions
 
                 var connectionString = $"Server={Config.Instance.GetConnectHost()};Port={Config.Instance.Properties["port"]};Database=mysql;Uid=root;Pwd={oldPassword};";
                 var sql = string.Empty;
-                var server_version_string = Agent.Instance.ContainerInfo.Image.Version;
+                var server_version_string = AgentContext.Container.Image.Version;
                 if (server_version_string.Contains("_"))
                     server_version_string = server_version_string.Substring(0, server_version_string.IndexOf("_"));
                 var server_version = new Version(server_version_string);

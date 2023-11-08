@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using YiQiDong.Core;
 using YiQiDong.Core.Utils;
-using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Agent;
 using Mono.Unix.Native;
 
@@ -15,6 +14,9 @@ namespace YiQiDong.MySQL
 {
     public class Agent : AbstractAgent
     {
+        private string mysqlAppDir;
+        private ProcessStartInfo psi;
+
         public static Agent Instance { get; private set; }
 
         public Process Process { get; set; }
@@ -24,18 +26,81 @@ namespace YiQiDong.MySQL
             Instance = this;
         }
 
-        public override void Init(ContainerInfo contentT)
+        public override void Init()
         {
-            base.Init(contentT);
+            base.Init();
+            if (AgentContext.IsContainerRuning)
+            {
+                var imageFolder = AgentContext.Container.ImageFolder;
+                var containerFolder = AgentContext.Container.ContainerFolder;
 
-            var imageFolder = ImagePathUtils.GetImageFolder(ContainerInfo.ImageId);
-            var containerFolder = ContainerPathUtils.GetContainerFolder(ContainerInfo.Id);
+                AddFunction(new Functions.Config("配置修改", imageFolder, containerFolder), false);
+                AddFunction(new Functions.Config("配置查看", imageFolder, containerFolder), true);
 
-            AddFunction(new Functions.Config("配置修改",imageFolder, containerFolder),false);
-            AddFunction(new Functions.Config("配置查看", imageFolder, containerFolder), true);
+                AddFunction(new Functions.PasswordManager(), true);
+                AddFunction(new Functions.SqlQuery());
 
-            AddFunction(new Functions.PasswordManager(), true);
-            AddFunction(new Functions.SqlQuery());
+                var dataFolder = Functions.Config.Instance.GetDataFolder();
+                var process_filename = "";
+                var process_arguments = $"--defaults-file=\"{Path.Combine(dataFolder, "my.ini")}\" --datadir=\"{Path.Combine(dataFolder, "data")}\"";
+                if (OperatingSystem.IsWindows())
+                {
+                    switch (RuntimeInformation.OSArchitecture)
+                    {
+                        case Architecture.X64:
+                            mysqlAppDir = Path.Combine(imageFolder, "mysql-win-x64");
+                            break;
+                        default:
+                            outputNotSupportOsAndArchitecture();
+                            break;
+                    }
+                    process_filename = Path.Combine(mysqlAppDir, "bin", "mysqld.exe");
+                    process_arguments += " --console";
+                }
+                else if (OperatingSystem.IsLinux())
+                {
+                    switch (RuntimeInformation.OSArchitecture)
+                    {
+                        case Architecture.X64:
+                            mysqlAppDir = Path.Combine(imageFolder, "mysql-linux-x64");
+                            break;
+                        case Architecture.Arm64:
+                            mysqlAppDir = Path.Combine(imageFolder, "mysql-linux-arm64");
+                            break;
+                        default:
+                            outputNotSupportOsAndArchitecture();
+                            break;
+                    }
+                    process_filename = Path.Combine(mysqlAppDir, "bin", "mysqld");
+                    //为进程添加可执行权限
+                    Syscall.chmod(process_filename, FilePermissions.S_IRWXU | FilePermissions.S_IRGRP | FilePermissions.S_IXGRP | FilePermissions.S_IROTH | FilePermissions.S_IXOTH);
+
+                    if (IsRunAsRoot())
+                        process_arguments += " --user=root";
+                    process_arguments += $" --basedir=\"{mysqlAppDir}\"";
+                    process_arguments += $" --socket=\"{Path.Combine(dataFolder, "mysqld.sock")}\"";
+                    process_arguments += " --secure-file-priv=\"\"";
+                    process_arguments += " --console";
+
+                    var mysqlLibDir = Path.Combine(mysqlAppDir, "lib");
+                    //添加PATH环境变量
+                    var path = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+                    if (string.IsNullOrEmpty(path))
+                        path = mysqlLibDir;
+                    else
+                        path = $"{path}:{mysqlLibDir}";
+                }
+                else
+                {
+                    outputNotSupportOsAndArchitecture();
+                }
+                psi = new ProcessStartInfo(process_filename, process_arguments);
+                psi.RedirectStandardOutput = true;
+                psi.RedirectStandardError = true;
+                psi.RedirectStandardInput = true;
+                psi.UseShellExecute = false;
+                psi.WorkingDirectory = dataFolder;
+            }
         }
 
         public override void Start()
@@ -49,14 +114,14 @@ namespace YiQiDong.MySQL
                 }
                 catch (Exception ex)
                 {
-                    AgentContext.Instance.LogError($"启动容器时失败，原因：{ex}");
+                    AgentContext.LogError($"启动容器时失败，原因：{ex}");
                 }
             });
         }
 
         private bool IsRunAsRoot()
         {
-            AgentContext.Instance.LogInfo("正在检查当前用户...");
+            AgentContext.LogInfo("正在检查当前用户...");
             var tmpPsi = new ProcessStartInfo("whoami");
             tmpPsi.RedirectStandardOutput = true;
             var tmpProcess = Process.Start(tmpPsi);
@@ -66,93 +131,23 @@ namespace YiQiDong.MySQL
 
         private void outputNotSupportOsAndArchitecture()
         {
-            AgentContext.Instance.LogWarn($"不支持的操作系统[{RuntimeInformation.OSDescription}]+平台架构[{RuntimeInformation.OSArchitecture}]。");
+            AgentContext.LogWarn($"不支持的操作系统[{RuntimeInformation.OSDescription}]+平台架构[{RuntimeInformation.OSArchitecture}]。");
         }
 
         private void innnerStart()
         {
             if (Process != null)
                 return;
-            if (!ContainerInfo.AutoStart)
+            if (!AgentContext.Container.AutoStart)
                 return;
 
-            var imageFolder = ImagePathUtils.GetImageFolder(ContainerInfo.ImageId);
+            var imageFolder = AgentContext.Container.ImageFolder;
             var dataFolder = Functions.Config.Instance.GetDataFolder();
 
             //检查复制data目录
-            FolderUtils.CopyFolder(Path.Combine(imageFolder, "data"), Path.Combine(dataFolder, "data"));
+            FilsSystemUtils.CopyFolder(Path.Combine(imageFolder, "data"), Path.Combine(dataFolder, "data"));
             //检查复制my.ini文件
-            FolderUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
-
-            var process_filename = "";
-            var process_arguments = $"--defaults-file=\"{Path.Combine(dataFolder, "my.ini")}\" --datadir=\"{Path.Combine(dataFolder, "data")}\"";
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                switch (RuntimeInformation.OSArchitecture)
-                {
-                    case Architecture.X64:
-                        process_filename = Path.Combine(imageFolder, "mysql-win_x64", "bin", "mysqld.exe");
-                        process_arguments += " --console";
-                        break;
-                    default:
-                        outputNotSupportOsAndArchitecture();
-                        return;
-                }
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                switch (RuntimeInformation.OSArchitecture)
-                {
-                    case Architecture.X64:
-                        {
-                            process_filename = Path.Combine(imageFolder, "mysql-linux_x64", "bin", "mysqld");
-                            if (IsRunAsRoot())
-                                process_arguments += " --user=root";
-                            process_arguments += $" --basedir=\"{Path.Combine(imageFolder, "mysql-linux_x64")}\"";
-                            process_arguments += $" --socket=\"{Path.Combine(dataFolder, "mysqld.sock")}\"";
-
-                            //检查文件
-                            FolderUtils.CopyFile(Path.Combine(imageFolder, "mysql-linux_x64", "lib", "libaio.so.1"), "/usr/lib/x86_64-linux-gnu");
-                            FolderUtils.CopyFile(Path.Combine(imageFolder, "mysql-linux_x64", "lib", "libnuma.so.1"), "/usr/lib/x86_64-linux-gnu");
-                            break;
-                        }
-                    case Architecture.Arm:
-                        {
-                            process_filename = Path.Combine(imageFolder, "mysql-linux_arm", "bin", "mysqld");
-                            if (IsRunAsRoot())
-                                process_arguments += " --user=root";
-                            process_arguments += $" --basedir=\"{Path.Combine(imageFolder, "mysql-linux_arm")}\"";
-                            process_arguments += $" --socket=\"{Path.Combine(dataFolder, "mysqld.sock")}\"";
-                            process_arguments += " --secure-file-priv=\"\"";
-                            process_arguments += " --console";
-
-                            //检查文件
-                            FolderUtils.CopyFile(Path.Combine(imageFolder, "mysql-linux_arm", "lib", "libaio.so.1"), "/usr/lib/arm-linux-gnueabihf");
-                            FolderUtils.CopyFile(Path.Combine(imageFolder, "mysql-linux_arm", "lib", "libwrap.so.0"), "/usr/lib/arm-linux-gnueabihf");
-                            break;
-                        }
-                    default:
-                        outputNotSupportOsAndArchitecture();
-                        return;
-                }
-                //为进程添加可执行权限
-                Syscall.chmod(process_filename, FilePermissions.S_IRWXU | FilePermissions.S_IRGRP | FilePermissions.S_IXGRP | FilePermissions.S_IROTH | FilePermissions.S_IXOTH);
-            }
-            else
-            {
-                outputNotSupportOsAndArchitecture();
-                return;
-            }
-            AgentContext.Instance.LogInfo("Process Filename：" + process_filename);
-            AgentContext.Instance.LogInfo("Process Arguments：" + process_arguments);
-
-            ProcessStartInfo psi = new ProcessStartInfo(process_filename, process_arguments);
-            psi.RedirectStandardOutput = true;
-            psi.RedirectStandardError = true;
-            psi.RedirectStandardInput = true;
-            psi.UseShellExecute = false;
-            psi.WorkingDirectory = dataFolder;
+            FilsSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
 
             Process = Process.Start(psi);
             Process.EnableRaisingEvents = true;
@@ -160,7 +155,7 @@ namespace YiQiDong.MySQL
             Process.ErrorDataReceived += Process_ErrorDataReceived;
             Process.BeginOutputReadLine();
             Process.BeginErrorReadLine();
-            AgentContext.Instance.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
+            AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
         }
 
@@ -168,14 +163,14 @@ namespace YiQiDong.MySQL
         {
             if (e.Data == null)
                 return;
-            AgentContext.Instance.LogInfo(e.Data);
+            AgentContext.LogInfo(e.Data);
         }
 
         private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
                 return;
-            AgentContext.Instance.LogInfo(e.Data);
+            AgentContext.LogInfo(e.Data);
         }
 
         private void delayStart()
@@ -188,7 +183,7 @@ namespace YiQiDong.MySQL
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            AgentContext.Instance.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
+            AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
             Process = null;
             delayStart();
         }
@@ -222,7 +217,7 @@ namespace YiQiDong.MySQL
             if (Process == null
                 || Process.HasExited)
                 return;
-            ProcessUtils.KillProcessTree(Process);
+            Process.Kill(true);
             base.Stop();
         }
     }
