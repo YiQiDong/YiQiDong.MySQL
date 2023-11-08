@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using YiQiDong.Protocol.V1.Model;
 using System.Linq;
-using System.Collections;
 using Quick.Fields;
-using MySql.Data.MySqlClient;
 using YiQiDong.Core;
+using YiQiDong.Core.Utils;
+using MySqlConnector;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -213,7 +213,7 @@ namespace YiQiDong.MySQL.Functions
                 }
                 catch (Exception ex)
                 {
-                    list.Add(new FieldForGet() { Name = "错误", Description = ex.Message, Input_ReadOnly = true, Type = FieldType.Alert });
+                    list.Add(new FieldForGet() { Name = "错误", Description = ExceptionUtils.GetExceptionString(ex), Input_ReadOnly = true, Type = FieldType.Alert });
                 }
             }
             return list.ToArray();

@@ -9,8 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
-    <PackageReference Include="MySql.Data" Version="8.2.0" />
-    <PackageReference Include="YiQiDong.Core" Version="2.2.22" />
+    <PackageReference Include="MySqlConnector" Version="2.2.7" />
+    <PackageReference Include="YiQiDong.Core" Version="2.2.24" />
   </ItemGroup>
 
   <ItemGroup>

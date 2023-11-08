@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -9,6 +8,7 @@ using YiQiDong.Core;
 using YiQiDong.Core.Utils;
 using YiQiDong.Agent;
 using Mono.Unix.Native;
+using MySqlConnector;
 
 namespace YiQiDong.MySQL
 {

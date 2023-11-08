@@ -1,15 +1,10 @@
-﻿using MySql.Data.MySqlClient;
-using Quick.Fields;
+﻿using Quick.Fields;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using YiQiDong.MySQL.Utils;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
 using YiQiDong.Agent;
+using MySqlConnector;
 
 namespace YiQiDong.MySQL.Functions
 {
