@@ -89,6 +89,7 @@ namespace YiQiDong.MySQL
                         path = mysqlLibDir;
                     else
                         path = $"{path}:{mysqlLibDir}";
+                    Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", path);
                 }
                 else
                 {
