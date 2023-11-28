@@ -69,9 +69,9 @@ public class MySqlUtils
             UnixUtils.AddExecutePermissionToFile(process_filename);
             if (IsRunAsRoot())
                 process_arguments.Add("--user=root");
-            process_arguments.Add($" --basedir={imageFolder}");
-            process_arguments.Add($" --socket={Path.Combine(dataFolder, "mysqld.sock")}");
-            process_arguments.Add(" --secure-file-priv=");
+            process_arguments.Add($"--basedir={imageFolder}");
+            process_arguments.Add($"--socket={Path.Combine(dataFolder, "mysqld.sock")}");
+            process_arguments.Add("--secure-file-priv=");
         }
         else
         {
