@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
 using YiQiDong.Agent;
-using MySqlConnector;
+using Quick.Shell.Utils;
+using System.IO;
+using YiQiDong.MySQL.Utils;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -45,6 +47,20 @@ namespace YiQiDong.MySQL.Functions
             return list.ToArray();
         }
 
+        public void ModifyPassword(string oldPassword, string newPassword)
+        {
+            var psi = MySqlUtils.GetMySqlAdminPsi(
+                Config.Instance.GetConnectHost(),
+                int.Parse(Config.Instance.Properties["port"]),
+                "root",
+                oldPassword,
+                "password", newPassword);
+            var ret = ProcessUtils.ExecuteProcessStartInfo(psi);
+            if (ret.ExitCode == 0)
+                return;
+            throw new IOException($"修改密码时出错，原因：{ret.Output}{ret.Error}");
+        }
+
         public override FieldForGet[] Post(FunctionRequest request)
         {
             var list = innerGet(request);
@@ -53,24 +69,8 @@ namespace YiQiDong.MySQL.Functions
                 var oldPassword = Config.Instance.GetPassword();
                 var newPassword = request.GetFieldValue("password");
 
-                var connectionString = $"Server={Config.Instance.GetConnectHost()};Port={Config.Instance.Properties["port"]};Database=mysql;Uid=root;Pwd={oldPassword};";
-                var sql = string.Empty;
-                var server_version_string = AgentContext.Container.Image.Version;
-                if (server_version_string.Contains("_"))
-                    server_version_string = server_version_string.Substring(0, server_version_string.IndexOf("_"));
-                var server_version = new Version(server_version_string);
-                if (server_version >= new Version(8, 0, 0))
-                    sql = $"alter user 'root'@'%' identified with mysql_native_password by '{newPassword}';flush privileges;";
-                else
-                    sql = $"update user set authentication_string=password('{newPassword}') where user='root';flush privileges;";
-
                 //先连接数据库修改密码
-                using (var connection = new MySqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var cmd = new MySqlCommand(sql, connection))
-                        cmd.ExecuteNonQuery();
-                }
+                ModifyPassword(oldPassword, newPassword);
 
                 //然后再保存到配置文件
                 try

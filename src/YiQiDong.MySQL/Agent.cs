@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using YiQiDong.Core;
 using YiQiDong.Core.Utils;
 using YiQiDong.Agent;
-using Mono.Unix.Native;
 using MySqlConnector;
+using Quick.Shell.Utils;
+using System.Linq;
+using YiQiDong.MySQL.Functions;
+using YiQiDong.MySQL.Utils;
 
 namespace YiQiDong.MySQL
 {
     public class Agent : AbstractAgent
     {
-        private string mysqlAppDir;
-        private ProcessStartInfo psi;
-
+        private string imageFolder;
         public static Agent Instance { get; private set; }
 
         public Process Process { get; set; }
@@ -30,7 +30,7 @@ namespace YiQiDong.MySQL
             base.Init();
             if (AgentContext.IsContainerRuning)
             {
-                var imageFolder = AgentContext.Container.ImageFolder;
+                imageFolder = AgentContext.Container.ImageFolder;
                 var containerFolder = AgentContext.Container.ContainerFolder;
 
                 AddFunction(new Functions.Config("配置修改", imageFolder, containerFolder), false);
@@ -39,49 +39,10 @@ namespace YiQiDong.MySQL
                 AddFunction(new Functions.PasswordManager(), true);
                 AddFunction(new Functions.SqlQuery());
 
-                var dataFolder = Functions.Config.Instance.GetDataFolder();
-                var process_filename = "";
-                var process_arguments = $"--defaults-file=\"{Path.Combine(dataFolder, "my.ini")}\" --datadir=\"{Path.Combine(dataFolder, "data")}\"";
-                if (OperatingSystem.IsWindows())
+                //Linux系统上添加LD_LIBRARY_PATH环境变量
+                if (OperatingSystem.IsLinux())
                 {
-                    switch (RuntimeInformation.OSArchitecture)
-                    {
-                        case Architecture.X64:
-                            mysqlAppDir = Path.Combine(imageFolder, "mysql-win-x64");
-                            break;
-                        default:
-                            outputNotSupportOsAndArchitecture();
-                            break;
-                    }
-                    process_filename = Path.Combine(mysqlAppDir, "bin", "mysqld.exe");
-                    process_arguments += " --console";
-                }
-                else if (OperatingSystem.IsLinux())
-                {
-                    switch (RuntimeInformation.OSArchitecture)
-                    {
-                        case Architecture.X64:
-                            mysqlAppDir = Path.Combine(imageFolder, "mysql-linux-x64");
-                            break;
-                        case Architecture.Arm64:
-                            mysqlAppDir = Path.Combine(imageFolder, "mysql-linux-arm64");
-                            break;
-                        default:
-                            outputNotSupportOsAndArchitecture();
-                            break;
-                    }
-                    process_filename = Path.Combine(mysqlAppDir, "bin", "mysqld");
-                    //为进程添加可执行权限
-                    Syscall.chmod(process_filename, FilePermissions.S_IRWXU | FilePermissions.S_IRGRP | FilePermissions.S_IXGRP | FilePermissions.S_IROTH | FilePermissions.S_IXOTH);
-
-                    if (IsRunAsRoot())
-                        process_arguments += " --user=root";
-                    process_arguments += $" --basedir=\"{mysqlAppDir}\"";
-                    process_arguments += $" --socket=\"{Path.Combine(dataFolder, "mysqld.sock")}\"";
-                    process_arguments += " --secure-file-priv=\"\"";
-                    process_arguments += " --console";
-
-                    var mysqlLibDir = Path.Combine(mysqlAppDir, "lib");
+                    var mysqlLibDir = Path.Combine(imageFolder, "lib");
                     //添加PATH环境变量
                     var path = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
                     if (string.IsNullOrEmpty(path))
@@ -90,16 +51,6 @@ namespace YiQiDong.MySQL
                         path = $"{path}:{mysqlLibDir}";
                     Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", path);
                 }
-                else
-                {
-                    outputNotSupportOsAndArchitecture();
-                }
-                psi = new ProcessStartInfo(process_filename, process_arguments);
-                psi.RedirectStandardOutput = true;
-                psi.RedirectStandardError = true;
-                psi.RedirectStandardInput = true;
-                psi.UseShellExecute = false;
-                psi.WorkingDirectory = dataFolder;
             }
         }
 
@@ -119,21 +70,6 @@ namespace YiQiDong.MySQL
             });
         }
 
-        private bool IsRunAsRoot()
-        {
-            AgentContext.LogInfo("正在检查当前用户...");
-            var tmpPsi = new ProcessStartInfo("whoami");
-            tmpPsi.RedirectStandardOutput = true;
-            var tmpProcess = Process.Start(tmpPsi);
-            var account = tmpProcess.StandardOutput.ReadToEnd();
-            return account.Trim() == "root";
-        }
-
-        private void outputNotSupportOsAndArchitecture()
-        {
-            AgentContext.LogWarn($"不支持的操作系统[{RuntimeInformation.OSDescription}]+平台架构[{RuntimeInformation.OSArchitecture}]。");
-        }
-
         private void innnerStart()
         {
             if (Process != null)
@@ -143,13 +79,27 @@ namespace YiQiDong.MySQL
 
             var imageFolder = AgentContext.Container.ImageFolder;
             var dataFolder = Functions.Config.Instance.GetDataFolder();
-
-            //检查复制data目录
-            FilsSystemUtils.CopyFolder(Path.Combine(imageFolder, "data"), Path.Combine(dataFolder, "data"));
+            //检查数据库是否初始化，如果不存在，则初始化
+            if (!Directory.Exists(Path.Combine(dataFolder, "data")))
+            {
+                AgentContext.LogInfo("正在初始化数据库...");
+                var ret = ProcessUtils.ExecuteProcessStartInfo(MySqlUtils.GetMySqldPsi("--initialize"));
+                if (ret.ExitCode == 0)
+                {
+                    AgentContext.LogInfo("初始化数据库时成功，修改密码后才能正常登录使用。");
+                    var output = $"{ret.Output}{ret.Error}";
+                    var tmpPassword = output.Split(" ", StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+                    Config.Instance.UpdatePassword(tmpPassword);
+                }
+                else
+                {
+                    AgentContext.LogError("初始化数据库时出错，原因：" + ret.Error);
+                }
+            }
             //检查复制my.ini文件
             FilsSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
 
-            Process = Process.Start(psi);
+            Process = Process.Start(MySqlUtils.GetMySqldPsi());
             Process.EnableRaisingEvents = true;
             Process.OutputDataReceived += Process_OutputDataReceived;
             Process.ErrorDataReceived += Process_ErrorDataReceived;
@@ -196,24 +146,23 @@ namespace YiQiDong.MySQL
             string user;
             string password;
 
-            host = Functions.Config.Instance.GetConnectHost();
-            port = Functions.Config.Instance.GetConnectPort();
+            host = Config.Instance.GetConnectHost();
+            port = Config.Instance.GetConnectPort();
             user = "root";
-            password = Functions.Config.Instance.GetPassword();
+            password = Config.Instance.GetPassword();
             try
             {
-                var connectionString = $"Server={host};Port={port};Database=mysql;Uid={user};Pwd={password};";
-                using (var connection = new MySqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var cmd = new MySqlCommand("shutdown;", connection))
-                        cmd.ExecuteNonQuery();
-                    connection.Close();
-                }
+                var psi = MySqlUtils.GetMySqlAdminPsi(host, port, user, password, "shutdown");
+                var ret = ProcessUtils.ExecuteProcessStartInfo(psi);
+                if (ret.ExitCode != 0)
+                    throw new IOException($"停止MySQL时出错，原因：{ret.Output}{ret.Error}");
                 //等待30秒
                 Process.WaitForExit(30 * 1000);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                AgentContext.LogError(ExceptionUtils.GetExceptionMessage(ex));
+            }
             if (Process == null
                 || Process.HasExited)
                 return;
