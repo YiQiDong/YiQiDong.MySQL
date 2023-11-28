@@ -11,7 +11,6 @@ using System.Linq;
 using YiQiDong.MySQL.Functions;
 using YiQiDong.MySQL.Utils;
 using System.Threading;
-using System.ComponentModel;
 
 namespace YiQiDong.MySQL
 {
@@ -62,8 +61,6 @@ namespace YiQiDong.MySQL
 
         private void innnerStart()
         {
-            if (Process != null)
-                return;
             if (!AgentContext.Container.AutoStart)
                 return;
 
@@ -137,6 +134,7 @@ namespace YiQiDong.MySQL
                 };
                 AgentContext.LogInfo("正在允许root用户远程登录...");
                 var connectionString = connectionStringBuilder.ConnectionString;
+
                 var sql = "update user set host = '%' where user = 'root';flush privileges;";
                 using (var connection = new MySqlConnection(connectionString))
                 {

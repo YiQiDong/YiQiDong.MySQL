@@ -26,7 +26,7 @@ namespace YiQiDong.MySQL.Functions
                 Type = FieldType.InputText,
                 Value = request == null ? Config.Instance.GetPassword() : request.GetFieldValue(tmpKey),
                 Input_AllowBlank = false,
-                Description = "root用户的密码，默认为:123456"
+                Description = "root用户的密码"
             });
             return list;
         }
