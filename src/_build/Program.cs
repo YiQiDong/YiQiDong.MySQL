@@ -108,6 +108,7 @@ foreach (var rid in rids)
                 QbFolder.DeleteFolders(winFolder, "docs");
                 QbFolder.DeleteFolders(winFolder, "include");
                 File.Move(Path.Combine(winFolder, "bin", "mysqld.exe"), Path.Combine(winFolder, "mysqld.exe"));
+                File.Move(Path.Combine(winFolder, "bin", "mysqladmin.exe"), Path.Combine(winFolder, "mysqladmin.exe"));
                 QbFile.DeleteFiles(Path.Combine(winFolder, "bin"), "*.exe");
                 QbFile.DeleteFiles(Path.Combine(winFolder, "bin"), "*.lib");
                 QbFile.DeleteFiles(Path.Combine(winFolder, "bin"), "*.pdb");
@@ -205,6 +206,7 @@ foreach (var rid in rids)
                 QbFolder.DeleteFolders(linuxFolder, "man");
                 QbFolder.DeleteFolders(linuxFolder, "support-files");
                 File.Move(Path.Combine(linuxFolder, "bin", "mysqld"), Path.Combine(linuxFolder, "mysqld"));
+                File.Move(Path.Combine(linuxFolder, "bin", "mysqladmin"), Path.Combine(linuxFolder, "mysqladmin"));
                 QbFolder.DeleteFolders(linuxFolder, "bin");
                 Directory.CreateDirectory(Path.Combine(linuxFolder, "bin"));
                 File.Move(Path.Combine(linuxFolder, "mysqld"), Path.Combine(linuxFolder, "bin", "mysqld"));
