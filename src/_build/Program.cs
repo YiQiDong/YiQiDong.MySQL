@@ -153,7 +153,7 @@ foreach (var rid in rids)
                     {
                         foreach (var tarEntry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
-                            tarEntry.WriteToDirectory(folder, new ExtractionOptions()
+                            tarEntry.WriteToDirectory(binFolder, new ExtractionOptions()
                             {
                                 ExtractFullPath = true,
                                 Overwrite = true
