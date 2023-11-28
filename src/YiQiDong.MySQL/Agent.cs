@@ -10,6 +10,8 @@ using Quick.Shell.Utils;
 using System.Linq;
 using YiQiDong.MySQL.Functions;
 using YiQiDong.MySQL.Utils;
+using System.Threading;
+using System.ComponentModel;
 
 namespace YiQiDong.MySQL
 {
@@ -38,30 +40,18 @@ namespace YiQiDong.MySQL
 
                 AddFunction(new Functions.PasswordManager(), true);
                 AddFunction(new Functions.SqlQuery());
-
-                //Linux系统上添加LD_LIBRARY_PATH环境变量
-                if (OperatingSystem.IsLinux())
-                {
-                    var mysqlLibDir = Path.Combine(imageFolder, "lib");
-                    //添加PATH环境变量
-                    var path = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
-                    if (string.IsNullOrEmpty(path))
-                        path = mysqlLibDir;
-                    else
-                        path = $"{path}:{mysqlLibDir}";
-                    Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", path);
-                }
+                MySqlUtils.Init();
             }
         }
 
         public override void Start()
         {
-            base.Start();
             Task.Run(() =>
             {
                 try
                 {
                     innnerStart();
+                    base.Start();
                 }
                 catch (Exception ex)
                 {
@@ -79,14 +69,17 @@ namespace YiQiDong.MySQL
 
             var imageFolder = AgentContext.Container.ImageFolder;
             var dataFolder = Functions.Config.Instance.GetDataFolder();
+            //是否已初始化
+            var initialized = true;
             //检查数据库是否初始化，如果不存在，则初始化
             if (!Directory.Exists(Path.Combine(dataFolder, "data")))
             {
+                initialized = false;
                 AgentContext.LogInfo("正在初始化数据库...");
                 var ret = ProcessUtils.ExecuteProcessStartInfo(MySqlUtils.GetMySqldPsi("--initialize"));
                 if (ret.ExitCode == 0)
                 {
-                    AgentContext.LogInfo("初始化数据库时成功，修改密码后才能正常登录使用。");
+                    AgentContext.LogInfo("初始化数据库时成功。");
                     var output = $"{ret.Output}{ret.Error}";
                     var tmpPassword = output.Split(" ", StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
                     Config.Instance.UpdatePassword(tmpPassword);
@@ -107,6 +100,52 @@ namespace YiQiDong.MySQL
             Process.BeginErrorReadLine();
             AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
+            //等待连接可用
+            while (!Process.HasExited)
+            {
+                Thread.Sleep(1000);
+                var ret = ProcessUtils.ExecuteProcessStartInfo(MySqlUtils.GetMySqlAdminPsi(
+                    Config.Instance.GetConnectHost(),
+                    Config.Instance.GetConnectPort(),
+                    "root",
+                    Config.Instance.GetPassword(),
+                    "ping"));
+                if (ret.ExitCode == 0)
+                    break;
+            }
+            if (Process.HasExited)
+                return;
+            //如果是第一次初始化，则修改密码，并允许root远程连接
+            if (!initialized)
+            {
+                AgentContext.LogInfo("正在修改自动生成的临时密码...");
+                var newPassword = Guid.NewGuid().ToString("N");
+                MySqlUtils.ModifyPassword(
+                    Config.Instance.GetConnectHost(),
+                    Config.Instance.GetConnectPort(),
+                    "root",
+                    Config.Instance.GetPassword(),
+                    newPassword);
+                Config.Instance.UpdatePassword(newPassword);
+                var connectionStringBuilder = new MySqlConnectionStringBuilder()
+                {
+                    Server = Config.Instance.GetConnectHost(),
+                    Port = Convert.ToUInt32(Config.Instance.GetConnectPort()),
+                    Database = "mysql",
+                    UserID = "root",
+                    Password = newPassword
+                };
+                AgentContext.LogInfo("正在允许root用户远程登录...");
+                var connectionString = connectionStringBuilder.ConnectionString;
+                var sql = "update user set host = '%' where user = 'root';flush privileges;";
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var cmd = new MySqlCommand(sql, connection))
+                        cmd.ExecuteNonQuery();
+                }
+            }
+            AgentContext.LogInfo("[MySQL服务启动完成]");
         }
 
         private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
@@ -134,7 +173,6 @@ namespace YiQiDong.MySQL
         private void Process_Exited(object sender, EventArgs e)
         {
             AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
-            Process = null;
             delayStart();
         }
 

@@ -5,11 +5,29 @@ using System.IO;
 using System;
 using YiQiDong.Agent;
 using System.Runtime.InteropServices;
+using YiQiDong.MySQL.Functions;
 
 namespace YiQiDong.MySQL.Utils;
 
 public class MySqlUtils
 {
+    public static void Init()
+    {
+        var imageFolder = AgentContext.Container.ImageFolder;
+        //Linux系统上添加LD_LIBRARY_PATH环境变量
+        if (OperatingSystem.IsLinux())
+        {
+            var mysqlLibDir = Path.Combine(imageFolder, "lib");
+            //添加PATH环境变量
+            var path = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+            if (string.IsNullOrEmpty(path))
+                path = mysqlLibDir;
+            else
+                path = $"{path}:{mysqlLibDir}";
+            Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", path);
+        }
+    }
+
     private static bool IsRunAsRoot()
     {
         AgentContext.LogInfo("正在检查当前用户...");
@@ -98,5 +116,20 @@ public class MySqlUtils
         ProcessUtils.ProcessProcessStartInfo(psi);
         psi.WorkingDirectory = dataFolder;
         return psi;
+    }
+
+    public static void ModifyPassword(string host, int port, string user, string oldPassword, string newPassword)
+    {
+
+        var psi = GetMySqlAdminPsi(
+            host,
+            port,
+            user,
+            oldPassword,
+            "password", newPassword);
+        var ret = ProcessUtils.ExecuteProcessStartInfo(psi);
+        if (ret.ExitCode == 0)
+            return;
+        throw new IOException($"修改密码时出错，原因：{ret.Output}{ret.Error}");
     }
 }

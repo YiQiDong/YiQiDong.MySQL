@@ -47,20 +47,6 @@ namespace YiQiDong.MySQL.Functions
             return list.ToArray();
         }
 
-        public void ModifyPassword(string oldPassword, string newPassword)
-        {
-            var psi = MySqlUtils.GetMySqlAdminPsi(
-                Config.Instance.GetConnectHost(),
-                int.Parse(Config.Instance.Properties["port"]),
-                "root",
-                oldPassword,
-                "password", newPassword);
-            var ret = ProcessUtils.ExecuteProcessStartInfo(psi);
-            if (ret.ExitCode == 0)
-                return;
-            throw new IOException($"修改密码时出错，原因：{ret.Output}{ret.Error}");
-        }
-
         public override FieldForGet[] Post(FunctionRequest request)
         {
             var list = innerGet(request);
@@ -70,7 +56,12 @@ namespace YiQiDong.MySQL.Functions
                 var newPassword = request.GetFieldValue("password");
 
                 //先连接数据库修改密码
-                ModifyPassword(oldPassword, newPassword);
+                MySqlUtils.ModifyPassword(
+                    Config.Instance.GetConnectHost(),
+                    Config.Instance.GetConnectPort(),
+                    "root",
+                    oldPassword,
+                    newPassword);
 
                 //然后再保存到配置文件
                 try

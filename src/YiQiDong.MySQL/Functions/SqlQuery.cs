@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using YiQiDong.Protocol.V1.Model;
-using System.Linq;
 using Quick.Fields;
 using YiQiDong.Core;
 using YiQiDong.Core.Utils;
@@ -168,47 +166,80 @@ namespace YiQiDong.MySQL.Functions
                     using (var connection = new MySqlConnection(connectionString))
                     {
                         connection.Open();
-                        StringBuilder sb = new StringBuilder();
                         using (var cmd = new MySqlCommand(script, connection))
                         {
                             var reader = cmd.ExecuteReader();
-                            var resultIndex = 1;
+                            var readerIndex = 0;
+
+                            var tabContainerField = new FieldForGet()
+                            {
+                                Type = FieldType.ContainerTab
+                            };
+                            var tabContainerFieldChildList = new List<FieldForGet>();
                             do
                             {
-                                if (resultIndex > 1)
-                                    sb.AppendLine();
-                                sb.AppendLine("结果" + resultIndex);
-                                resultIndex++;
+                                readerIndex++;
+                                var tableField = new FieldForGet()
+                                {
+                                    Type = FieldType.ContainerTable
+                                };
+                                List<FieldForGet> trFieldList = new List<FieldForGet>();
                                 if (reader.FieldCount > 0)
                                 {
-                                    List<string> columnList = new List<string>();
+                                    var headTr = new FieldForGet() { Type = FieldType.ContainerTableTr };
+                                    var headTrChildList = new List<FieldForGet>();
                                     for (var i = 0; i < reader.FieldCount; i++)
-                                        columnList.Add(reader.GetName(i));
-                                    var columnLine = string.Join(" | ", columnList);
-                                    sb.AppendLine(string.Empty.PadRight(columnLine.Length, '-'));
-                                    sb.AppendLine(columnLine);
-                                    sb.AppendLine(string.Empty.PadRight(columnLine.Length, '-'));
+                                    {
+                                        headTrChildList.Add(new FieldForGet()
+                                        {
+                                            Type = FieldType.ContainerTableTh,
+                                            Value = reader.GetName(i)
+                                        });
+                                    }
+                                    headTr.Children = headTrChildList.ToArray();
+                                    trFieldList.Add(headTr);
 
                                     while (reader.Read())
                                     {
-                                        var isFirstCell = true;
+                                        var rowTr = new FieldForGet() { Type = FieldType.ContainerTableTr };
+                                        var rowTrChildList = new List<FieldForGet>();
+
                                         for (var i = 0; i < reader.FieldCount; i++)
                                         {
-                                            if (!isFirstCell)
-                                                sb.Append(" | ");
-                                            isFirstCell = false;
-                                            sb.Append(reader.GetValue(i).ToString());
+                                            rowTrChildList.Add(new FieldForGet()
+                                            {
+                                                Type = FieldType.ContainerTableTd,
+                                                Value = reader.GetValue(i)?.ToString()
+                                            });
                                         }
-                                        sb.AppendLine();
+                                        rowTr.Children = rowTrChildList.ToArray();
+                                        trFieldList.Add(rowTr);
                                     }
                                 }
                                 else
                                 {
-                                    sb.AppendLine($"影响的记录数：{reader.RecordsAffected}");
+                                    trFieldList.Add(new FieldForGet()
+                                    {
+                                        Type = FieldType.ContainerTableTr,
+                                        Value = "影响的记录数",
+                                        Children = new[]
+                                        {
+                                            new FieldForGet(){ Type = FieldType.ContainerTableTd,Value = reader.RecordsAffected.ToString() }
+                                        }
+                                    });
                                 }
+                                tableField.Children = trFieldList.ToArray();
+                                tabContainerFieldChildList.Add(new FieldForGet()
+                                {
+                                    Id = "result" + readerIndex,
+                                    Type = FieldType.ContainerGroup,
+                                    Name = "结果" + readerIndex,
+                                    Children = [tableField]
+                                });
                             } while (reader.NextResult());
+                            tabContainerField.Children = tabContainerFieldChildList.ToArray();
+                            list.Add(tabContainerField);
                         }
-                        list.Add(new FieldForGet() { Name = "查询结果", Description = sb.ToString(), Type = FieldType.Alert });
                     }
                 }
                 catch (Exception ex)
