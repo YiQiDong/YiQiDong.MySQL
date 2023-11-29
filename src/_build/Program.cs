@@ -134,7 +134,7 @@ foreach (var rid in rids)
                 {
                     url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
                         version.Major, version.Minor, version.Build,
-                        rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.12-aarch64");
+                        rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.17-aarch64");
                     file = Path.Combine(binFolder, Path.GetFileName(url));
                     Console.WriteLine($"正在从[{url}]下载文件...");
                     using (var fs = File.OpenWrite(file))
