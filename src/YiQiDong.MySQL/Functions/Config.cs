@@ -15,7 +15,7 @@ namespace YiQiDong.MySQL.Functions
     {
         public const string CONFIG_FILE = "my.ini";
         public const string DATA_FOLDER_CONFIG_FILE = "DataFolder.conf";
-        public static Config Instance { get; private set; }
+        public static Config Instance { get; private set; } = new Config("数据库配置");
 
         private string name;
         private string imageFolder;
@@ -23,33 +23,42 @@ namespace YiQiDong.MySQL.Functions
 
         public override string Name => name;
         public Dictionary<string, string> Properties = null;
-        private string containerConfigFile;
+        public string MySqlConfigFile { get; private set; }
 
         public void RefreshProperties(string dataFolder)
         {
             if (!Directory.Exists(dataFolder))
                 return;
-            
-            containerConfigFile = Path.Combine(dataFolder, CONFIG_FILE);
-            if (!File.Exists(containerConfigFile))
+
+            MySqlConfigFile = Path.Combine(dataFolder, CONFIG_FILE);
+            if (!File.Exists(MySqlConfigFile))
             {
-                var folder = Path.GetDirectoryName(containerConfigFile);
+                var folder = Path.GetDirectoryName(MySqlConfigFile);
                 if (!Directory.Exists(folder))
                     Directory.CreateDirectory(folder);
                 var imageConfigFile = Path.Combine(imageFolder, CONFIG_FILE);
                 if (File.Exists(imageConfigFile))
-                    File.Copy(imageConfigFile, containerConfigFile, true);
+                {
+                    File.Copy(imageConfigFile, MySqlConfigFile, true);
+                    AgentContext.LogInfo($"配置文件[{MySqlConfigFile}]不存在，已从镜像目录默认配置文件[{imageConfigFile}]复制。");
+                }
             }
-            if (File.Exists(containerConfigFile))
-                Properties = IniFileUtils.Load(containerConfigFile);
+            if (File.Exists(MySqlConfigFile))
+            {
+                Properties = IniFileUtils.Load(MySqlConfigFile);
+            }
+            else
+            {
+                AgentContext.LogWarn($"配置文件[{MySqlConfigFile}]不存在！");
+            }
         }
 
-        public Config(string name,string imageFolder, string containerFolder)
+        private Config(string name)
         {
             Instance = this;
             this.name = name;
-            this.containerFolder = containerFolder;
-            this.imageFolder = imageFolder;
+            containerFolder = AgentContext.Container.ContainerFolder;
+            imageFolder = AgentContext.Container.ImageFolder;
             RefreshProperties(GetDataFolder());
         }
 
@@ -97,13 +106,13 @@ namespace YiQiDong.MySQL.Functions
         {
             if (Properties.ContainsKey("password"))
                 return Properties["password"];
-            return "123456";
+            return string.Empty;
         }
 
         public void UpdatePassword(string password)
         {
             Properties["password"] = password;
-            IniFileUtils.Save(containerConfigFile, Properties);
+            IniFileUtils.Save(MySqlConfigFile, Properties);
         }
 
         private List<FieldForGet> innerGet(FunctionRequest request, bool isReadOnly = false)
@@ -218,7 +227,7 @@ namespace YiQiDong.MySQL.Functions
             {
                 try
                 {
-                    if (File.Exists(containerConfigFile))
+                    if (File.Exists(MySqlConfigFile))
                     {
                         var dataFolder = request.GetFieldValue("DataFolder");
                         var dataFolderConfigFile = Path.Combine(containerFolder, DATA_FOLDER_CONFIG_FILE);
@@ -231,13 +240,15 @@ namespace YiQiDong.MySQL.Functions
                         {
                             File.WriteAllText(dataFolderConfigFile, dataFolder);
                         }
-                        IniFileUtils.Save(containerConfigFile, request.Fields);
+                        IniFileUtils.Save(MySqlConfigFile, request.Fields);
                         //保存成功后重新加载配置文件
+                        if (string.IsNullOrEmpty(dataFolder))
+                            dataFolder = containerFolder;                        
                         RefreshProperties(dataFolder);
                         list.Add(new FieldForGet()
                         {
                             Name = "保存成功",
-                            Description = $"配置文件[{containerConfigFile}]保存成功！",
+                            Description = $"配置文件[{MySqlConfigFile}]保存成功！",
                             Type = FieldType.MessageBox
                         });
                     }
@@ -246,7 +257,7 @@ namespace YiQiDong.MySQL.Functions
                         list.Add(new FieldForGet()
                         {
                             Name = "错误",
-                            Description = $"配置文件[{containerConfigFile}]不存在！",
+                            Description = $"配置文件[{MySqlConfigFile}]不存在！",
                             Type = FieldType.Alert
                         });
                     }

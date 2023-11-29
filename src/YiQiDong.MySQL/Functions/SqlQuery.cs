@@ -161,9 +161,18 @@ namespace YiQiDong.MySQL.Functions
 
                 try
                 {
-                    var connectionString = $"Server={host};Port={port};Database=mysql;Uid={user};Pwd={password};CharSet={charSet};";
+                    var connectionStringBuilder = new MySqlConnectionStringBuilder()
+                    {
+                        Server = host,
+                        Port = Convert.ToUInt32(port),
+                        Database = "mysql",
+                        UserID = user,
+                        Password = password,
+                        CharacterSet = charSet,
+                        SslMode = MySqlSslMode.None
+                    };
                     //先连接数据库修改密码
-                    using (var connection = new MySqlConnection(connectionString))
+                    using (var connection = new MySqlConnection(connectionStringBuilder.ConnectionString))
                     {
                         connection.Open();
                         using (var cmd = new MySqlCommand(script, connection))

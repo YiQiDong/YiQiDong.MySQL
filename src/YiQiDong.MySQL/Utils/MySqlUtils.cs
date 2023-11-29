@@ -5,7 +5,6 @@ using System.IO;
 using System;
 using YiQiDong.Agent;
 using System.Runtime.InteropServices;
-using YiQiDong.MySQL.Functions;
 
 namespace YiQiDong.MySQL.Utils;
 

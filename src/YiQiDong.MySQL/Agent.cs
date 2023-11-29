@@ -32,13 +32,9 @@ namespace YiQiDong.MySQL
             if (AgentContext.IsContainerRuning)
             {
                 imageFolder = AgentContext.Container.ImageFolder;
-                var containerFolder = AgentContext.Container.ContainerFolder;
-
-                AddFunction(new Functions.Config("配置修改", imageFolder, containerFolder), false);
-                AddFunction(new Functions.Config("配置查看", imageFolder, containerFolder), true);
-
-                AddFunction(new Functions.PasswordManager(), true);
-                AddFunction(new Functions.SqlQuery());
+                AddFunction(Config.Instance);
+                AddFunction(new PasswordManager(), true);
+                AddFunction(new SqlQuery());
                 MySqlUtils.Init();
             }
         }
@@ -65,7 +61,9 @@ namespace YiQiDong.MySQL
                 return;
 
             var imageFolder = AgentContext.Container.ImageFolder;
-            var dataFolder = Functions.Config.Instance.GetDataFolder();
+            var dataFolder = Config.Instance.GetDataFolder();
+            //检查复制my.ini文件
+            FilsSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
             //是否已初始化
             var initialized = true;
             //检查数据库是否初始化，如果不存在，则初始化
@@ -86,8 +84,6 @@ namespace YiQiDong.MySQL
                     AgentContext.LogError("初始化数据库时出错，原因：" + ret.Error);
                 }
             }
-            //检查复制my.ini文件
-            FilsSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
 
             Process = Process.Start(MySqlUtils.GetMySqldPsi());
             Process.EnableRaisingEvents = true;
@@ -95,8 +91,10 @@ namespace YiQiDong.MySQL
             Process.ErrorDataReceived += Process_ErrorDataReceived;
             Process.BeginOutputReadLine();
             Process.BeginErrorReadLine();
-            AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
+            AgentContext.LogInfo("MySQL监听端口：" + Config.Instance.GetConnectPort());
+            AgentContext.LogInfo($"MySQL服务进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
+
             //等待连接可用
             while (!Process.HasExited)
             {
@@ -130,7 +128,8 @@ namespace YiQiDong.MySQL
                     Port = Convert.ToUInt32(Config.Instance.GetConnectPort()),
                     Database = "mysql",
                     UserID = "root",
-                    Password = newPassword
+                    Password = newPassword,
+                    SslMode = MySqlSslMode.None
                 };
                 AgentContext.LogInfo("正在允许root用户远程登录...");
                 var connectionString = connectionStringBuilder.ConnectionString;
