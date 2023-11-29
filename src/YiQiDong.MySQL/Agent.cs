@@ -76,8 +76,17 @@ namespace YiQiDong.MySQL
                 {
                     AgentContext.LogInfo("初始化数据库时成功。");
                     var output = $"{ret.Output}{ret.Error}";
-                    var tmpPassword = output.Split(" ", StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-                    Config.Instance.UpdatePassword(tmpPassword);
+                    AgentContext.LogInfo(output);
+                    //[Note] [MY-010454] [Server] A temporary password is generated for root@localhost: PhhZ4mdQ6t-X
+                    foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (!line.Contains("temporary password"))
+                            continue;
+                        var tmpPassword = line.Split(": ", StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+                        AgentContext.LogInfo("临时密码：" + tmpPassword);
+                        Config.Instance.UpdatePassword(tmpPassword);
+                        break;
+                    }
                 }
                 else
                 {

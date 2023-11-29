@@ -92,9 +92,10 @@ public class MySqlUtils
         {
             $"--host={host}",
             $"--port={port}",
-            $"--user={user}",
-            $"--password={password}"
+            $"--user={user}"
         };
+        if (!string.IsNullOrEmpty(password))
+            process_arguments.Add($"--password=\"{password}\"");
         if (arguments != null)
             process_arguments.AddRange(arguments);
         if (OperatingSystem.IsWindows())
