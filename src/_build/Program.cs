@@ -80,17 +80,25 @@ if (version >= Version.Parse("8.0"))
 var rids = QbSelect.MultiSelect(ridDict.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 if (rids == null || rids.Length == 0)
     rids = ridDict.Keys.ToArray();
+
+var binFolder = Path.Combine(Environment.CurrentDirectory, "bin");
+if (Directory.Exists(binFolder))
+{
+    Console.WriteLine($"正在清理目录...");
+    Directory.Delete(binFolder, true);
+}
+Directory.CreateDirectory(binFolder);
+
 foreach (var rid in rids)
 {
     Console.WriteLine($"开始打包[{rid}]...");
-    var binFolder = Path.Combine(Environment.CurrentDirectory, "bin");
+    
     var folder = Path.Combine(binFolder, "MySQL");
     if (Directory.Exists(folder))
     {
         Console.WriteLine($"正在清理目录...");
         Directory.Delete(folder, true);
     }
-    Directory.CreateDirectory(folder);
     switch (rid)
     {
         case "win-x64":
