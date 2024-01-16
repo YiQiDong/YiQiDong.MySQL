@@ -90,6 +90,7 @@ foreach (var rid in rids)
         Console.WriteLine($"正在清理目录...");
         Directory.Delete(folder, true);
     }
+    Directory.CreateDirectory(folder);
     switch (rid)
     {
         case "win-x64":
