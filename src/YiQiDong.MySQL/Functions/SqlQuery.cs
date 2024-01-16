@@ -243,7 +243,7 @@ namespace YiQiDong.MySQL.Functions
                                     Id = "result" + readerIndex,
                                     Type = FieldType.ContainerGroup,
                                     Name = "结果" + readerIndex,
-                                    Children = [tableField]
+                                    Children = new[] { tableField }
                                 });
                             } while (reader.NextResult());
                             tabContainerField.Children = tabContainerFieldChildList.ToArray();
