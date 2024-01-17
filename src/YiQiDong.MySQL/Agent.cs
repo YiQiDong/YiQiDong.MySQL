@@ -82,7 +82,9 @@ namespace YiQiDong.MySQL
                     {
                         if (!line.Contains("temporary password"))
                             continue;
-                        var tmpPassword = line.Split(": ", StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+                        var tmpPassword = line.Split(": ", StringSplitOptions.RemoveEmptyEntries)
+                            .LastOrDefault()
+                            .Trim();
                         AgentContext.LogInfo("临时密码：" + tmpPassword);
                         Config.Instance.UpdatePassword(tmpPassword);
                         break;
