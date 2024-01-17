@@ -57,8 +57,6 @@ namespace YiQiDong.MySQL.Functions
 
                 //先连接数据库修改密码
                 MySqlUtils.ModifyPassword(
-                    Config.Instance.GetConnectHost(),
-                    Config.Instance.GetConnectPort(),
                     "root",
                     oldPassword,
                     newPassword);

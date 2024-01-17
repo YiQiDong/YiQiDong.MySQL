@@ -11,13 +11,24 @@ using System.Linq;
 using YiQiDong.MySQL.Functions;
 using YiQiDong.MySQL.Utils;
 using System.Threading;
+using System.Net.Sockets;
 
 namespace YiQiDong.MySQL
 {
     public class Agent : AbstractAgent
     {
-        private string imageFolder;
+        private string[] serveiceStartLogKeys = new[]
+        {
+            "[Server]",
+            "ready for connections.",
+            "MySQL Community Server"
+        };
+
         public static Agent Instance { get; private set; }
+        /// <summary>
+        /// MySQL服务是否已启动
+        /// </summary>
+        public bool MySqlServiceStarted { get; private set; } = false;
 
         public Process Process { get; set; }
 
@@ -31,7 +42,6 @@ namespace YiQiDong.MySQL
             base.Init();
             if (AgentContext.IsContainerRuning)
             {
-                imageFolder = AgentContext.Container.ImageFolder;
                 AddFunction(Config.Instance);
                 AddFunction(new PasswordManager(), true);
                 AddFunction(new SqlQuery());
@@ -59,7 +69,7 @@ namespace YiQiDong.MySQL
         {
             if (!AgentContext.Container.AutoStart)
                 return;
-
+            MySqlServiceStarted = false;
             var imageFolder = AgentContext.Container.ImageFolder;
             var dataFolder = Config.Instance.GetDataFolder();
             //检查复制my.ini文件
@@ -77,7 +87,6 @@ namespace YiQiDong.MySQL
                     AgentContext.LogInfo("初始化数据库时成功。");
                     var output = $"{ret.Output}{ret.Error}";
                     AgentContext.LogInfo(output);
-                    //[Note] [MY-010454] [Server] A temporary password is generated for root@localhost: PhhZ4mdQ6t-X
                     foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                     {
                         if (!line.Contains("temporary password"))
@@ -106,19 +115,20 @@ namespace YiQiDong.MySQL
             AgentContext.LogInfo($"MySQL服务进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
 
-            //等待连接可用
-            while (!Process.HasExited)
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            //等待服务启动完成
+            while (!Process.HasExited && !MySqlServiceStarted)
             {
                 Thread.Sleep(1000);
-                var ret = ProcessUtils.ExecuteProcessStartInfo(MySqlUtils.GetMySqlAdminPsi(
-                    Config.Instance.GetConnectHost(),
-                    Config.Instance.GetConnectPort(),
-                    "root",
-                    Config.Instance.GetPassword(),
-                    "ping"));
-                if (ret.ExitCode == 0)
-                    break;
+                var totalMinutes = stopwatch.Elapsed.TotalMinutes;
+                if (totalMinutes > 1)
+                {
+                    AgentContext.LogWarn("MySQL服务经过了1分钟仍未启动完成...");
+                    stopwatch.Restart();
+                }
             }
+            stopwatch.Stop();
             if (Process.HasExited)
                 return;
             //如果是第一次初始化，则修改密码，并允许root远程连接
@@ -127,8 +137,6 @@ namespace YiQiDong.MySQL
                 AgentContext.LogInfo("正在修改自动生成的临时密码...");
                 var newPassword = Guid.NewGuid().ToString("N");
                 MySqlUtils.ModifyPassword(
-                    Config.Instance.GetConnectHost(),
-                    Config.Instance.GetConnectPort(),
                     "root",
                     Config.Instance.GetPassword(),
                     newPassword);
@@ -168,7 +176,13 @@ namespace YiQiDong.MySQL
         {
             if (e.Data == null)
                 return;
-            AgentContext.LogInfo(e.Data);
+            var line = e.Data;
+            AgentContext.LogInfo(line);
+
+            //2024-01-17 17:05:29: [Info] 2024-01-17T09:05:29.462653Z 0 [System] [MY-010931] [Server] /newdisk/YiQiDong/Data/Images/MySQL/bin/mysqld: ready for connections. Version: '8.0.36'  socket: '/newdisk/YiQiDong/Data/Containers/MySQL-1/mysqld.sock'  port: 3311  MySQL Community Server - GPL.
+            //判断MySQL服务启动完成
+            if (!MySqlServiceStarted)
+                MySqlServiceStarted = serveiceStartLogKeys.All(t => line.Contains(t));
         }
 
         private void delayStart()
@@ -188,18 +202,14 @@ namespace YiQiDong.MySQL
         public override void Stop()
         {
             //发送shutdown
-            string host;
-            int port;
             string user;
             string password;
 
-            host = Config.Instance.GetConnectHost();
-            port = Config.Instance.GetConnectPort();
             user = "root";
             password = Config.Instance.GetPassword();
             try
             {
-                var psi = MySqlUtils.GetMySqlAdminPsi(host, port, user, password, "shutdown");
+                var psi = MySqlUtils.GetMySqlAdminPsi(user, password, "shutdown");
                 var ret = ProcessUtils.ExecuteProcessStartInfo(psi);
                 if (ret.ExitCode != 0)
                     throw new IOException($"停止MySQL时出错，原因：{ret.Output}{ret.Error}");

@@ -82,29 +82,22 @@ public class MySqlUtils
         return psi;
     }
 
-    public static ProcessStartInfo GetMySqlAdminPsi(string host, int port, string user, string password,
-        params string[] arguments)
+    public static ProcessStartInfo GetMySqlAdminPsi(string user, string password, params string[] arguments)
     {
         var imageFolder = AgentContext.Container.ImageFolder;
         var dataFolder = Functions.Config.Instance.GetDataFolder();
         var process_filename = "";
-        var process_arguments = new List<string>()
-        {
-            $"--host={host}",
-            $"--port={port}",
-            $"--user={user}"
-        };
-        if (!string.IsNullOrEmpty(password))
-            process_arguments.Add($"--password={password}");
-        if (arguments != null)
-            process_arguments.AddRange(arguments);
+        var process_arguments = new List<string>();
         if (OperatingSystem.IsWindows())
         {
             process_filename = Path.Combine(imageFolder, "bin", "mysqladmin.exe");
+            process_arguments.Add($"--host={Functions.Config.Instance.GetConnectHost()}");
+            process_arguments.Add($"--port={Functions.Config.Instance.GetConnectPort()}");
         }
         else if (OperatingSystem.IsLinux())
         {
             process_filename = Path.Combine(imageFolder, "bin", "mysqladmin");
+            process_arguments.Add($"--socket={dataFolder}/mysqld.sock");
             //为进程添加可执行权限
             UnixUtils.AddExecutePermissionToFile(process_filename);
         }
@@ -112,18 +105,23 @@ public class MySqlUtils
         {
             throw new NotSupportedException();
         }
+        if (!string.IsNullOrEmpty(user))
+            process_arguments.Add($"--user={user}");
+        if (!string.IsNullOrEmpty(password))
+            process_arguments.Add($"--password={password}");
+        if (arguments != null)
+            process_arguments.AddRange(arguments);
+
         var psi = ProcessUtils.CreateProcessStartInfo(process_filename, process_arguments.ToArray());
         ProcessUtils.ProcessProcessStartInfo(psi);
         psi.WorkingDirectory = dataFolder;
         return psi;
     }
 
-    public static void ModifyPassword(string host, int port, string user, string oldPassword, string newPassword)
+    public static void ModifyPassword(string user, string oldPassword, string newPassword)
     {
 
         var psi = GetMySqlAdminPsi(
-            host,
-            port,
             user,
             oldPassword,
             "password", newPassword);
