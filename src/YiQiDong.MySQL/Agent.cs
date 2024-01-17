@@ -196,6 +196,8 @@ namespace YiQiDong.MySQL
         private void Process_Exited(object sender, EventArgs e)
         {
             AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
+            if (!AgentContext.Container.AutoStart)
+                return;
             delayStart();
         }
 
