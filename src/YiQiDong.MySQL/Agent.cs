@@ -19,8 +19,8 @@ namespace YiQiDong.MySQL
     {
         private string[] serveiceStartLogKeys = new[]
         {
-            "[Server]",
-            "ready for connections.",
+            "Version:",
+            "port:",
             "MySQL Community Server"
         };
 
@@ -178,8 +178,8 @@ namespace YiQiDong.MySQL
                 return;
             var line = e.Data;
             AgentContext.LogInfo(line);
-
-            //2024-01-17 17:05:29: [Info] 2024-01-17T09:05:29.462653Z 0 [System] [MY-010931] [Server] /newdisk/YiQiDong/Data/Images/MySQL/bin/mysqld: ready for connections. Version: '8.0.36'  socket: '/newdisk/YiQiDong/Data/Containers/MySQL-1/mysqld.sock'  port: 3311  MySQL Community Server - GPL.
+            //5.7: [Info] Version: '5.7.44'  socket: '/data/YiQiDong/Data/Containers/MySQL-1/mysqld.sock'  port: 3311  MySQL Community Server (GPL)
+            //8.0: [Info] 2024-01-17T09:05:29.462653Z 0 [System] [MY-010931] [Server] /newdisk/YiQiDong/Data/Images/MySQL/bin/mysqld: ready for connections. Version: '8.0.36'  socket: '/newdisk/YiQiDong/Data/Containers/MySQL-1/mysqld.sock'  port: 3311  MySQL Community Server - GPL.
             //判断MySQL服务启动完成
             if (!MySqlServiceStarted)
                 MySqlServiceStarted = serveiceStartLogKeys.All(t => line.Contains(t));
