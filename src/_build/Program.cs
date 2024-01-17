@@ -82,12 +82,8 @@ if (rids == null || rids.Length == 0)
     rids = ridDict.Keys.ToArray();
 
 var binFolder = Path.Combine(Environment.CurrentDirectory, "bin");
-if (Directory.Exists(binFolder))
-{
-    Console.WriteLine($"正在清理目录...");
-    Directory.Delete(binFolder, true);
-}
-Directory.CreateDirectory(binFolder);
+if (!Directory.Exists(binFolder))
+    Directory.CreateDirectory(binFolder);
 
 foreach (var rid in rids)
 {
