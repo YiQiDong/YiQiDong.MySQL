@@ -140,7 +140,8 @@ namespace YiQiDong.MySQL
                     Database = "mysql",
                     UserID = "root",
                     Password = newPassword,
-                    SslMode = MySqlSslMode.None
+                    SslMode = MySqlSslMode.None,
+                    AllowPublicKeyRetrieval = true
                 };
                 AgentContext.LogInfo("正在允许root用户远程登录...");
                 var connectionString = connectionStringBuilder.ConnectionString;

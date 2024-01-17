@@ -169,7 +169,8 @@ namespace YiQiDong.MySQL.Functions
                         UserID = user,
                         Password = password,
                         CharacterSet = charSet,
-                        SslMode = MySqlSslMode.None
+                        SslMode = MySqlSslMode.None,
+                        AllowPublicKeyRetrieval = true
                     };
                     //先连接数据库修改密码
                     using (var connection = new MySqlConnection(connectionStringBuilder.ConnectionString))

@@ -28,7 +28,11 @@ Console.WriteLine("----------------------------------");
 Console.WriteLine("  欢迎使用MySQL编译脚本");
 Console.WriteLine("----------------------------------");
 Version version;
-HttpClient httpClient = new HttpClient();
+
+var handler = new HttpClientHandler();
+handler.ServerCertificateCustomValidationCallback = delegate { return true; };
+
+HttpClient httpClient = new HttpClient(handler);
 httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("text/html"));
 httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/xhtml+xml"));
 httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/xml;q=0.9"));
@@ -65,7 +69,8 @@ Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}
 Console.WriteLine("请选择镜像站：");
 var mirrorUrl = QbSelect.ArrowSelect(new Dictionary<string, string>()
 {
-    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站"
+    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站",
+    ["https://cdn.mysql.com/Downloads/"] = "MySQL CDN"
 }.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 
 Console.WriteLine("请选择运行平台(一个都不选代表全选)：");
