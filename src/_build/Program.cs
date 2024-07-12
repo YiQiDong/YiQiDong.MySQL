@@ -56,6 +56,8 @@ var mysqlVersion = QbSelect.ArrowSelect(new Dictionary<string, string>()
 {
     ["5.7"] = "5.7",
     ["8.0"] = "8.0",
+    ["8.4"] = "8.4",
+    ["9.0"] = "9.0",
     [""] = "手动输入"
 }.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 
@@ -67,9 +69,17 @@ if (string.IsNullOrEmpty(mysqlVersion))
 else
 {
     Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
-    var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
-    var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
-    var mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+    string mysqlVersionStr = null;
+    if (mysqlVersion == "5.7")
+    {
+        mysqlVersionStr = "5.7.44";
+    }
+    else
+    {
+        var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
+        var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
+        mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+    }
     version = Version.Parse(mysqlVersionStr);
     Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
 }
@@ -96,7 +106,10 @@ if (rids == null || rids.Length == 0)
 var binFolder = Path.Combine(Environment.CurrentDirectory, "bin");
 if (!Directory.Exists(binFolder))
     Directory.CreateDirectory(binFolder);
-
+var displayDownloadProgress = new Action<QbNet.TransferProgress>(t=>
+{
+    QbConsole.DisplaySameLineInConsole($"[{t.Current * 100 / t.Total}%]进度：{t.Current}/{t.Total}，速度：{t.Speed}，剩余时间：{t.RemainingTime}");
+});
 foreach (var rid in rids)
 {
     Console.WriteLine($"开始打包[{rid}]...");
@@ -115,28 +128,32 @@ foreach (var rid in rids)
                 var url = string.Format(URL_TEMPLATE_WINDOWS, mirrorUrl, version.Major, version.Minor, version.Build, "winx64");
                 var file = Path.Combine(binFolder, Path.GetFileName(url));
                 Console.WriteLine($"正在从[{url}]下载文件...");
-                using (var fs = File.OpenWrite(file))
-                using (var ns = httpClient.GetStreamAsync(url).Result)
-                    ns.CopyTo(fs);
+                QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
+                Console.WriteLine();
                 Console.WriteLine($"正在解压文件[{file}]...");
                 ZipFile.ExtractToDirectory(file, binFolder);
                 Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file)), folder);
                 Thread.Sleep(1000);
                 QbFolder.DeleteFolders(folder, "docs");
                 QbFolder.DeleteFolders(folder, "include");
-                File.Move(Path.Combine(folder, "bin", "mysqld.exe"), Path.Combine(folder, "mysqld.exe"));
-                File.Move(Path.Combine(folder, "bin", "mysqladmin.exe"), Path.Combine(folder, "mysqladmin.exe"));
+                foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin"), "*.exe"))
+                {
+                    var executeFileName = Path.GetFileName(executeFileFullName);
+                    File.Move(executeFileFullName, Path.Combine(folder, executeFileName));
+                }
                 QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*.exe");
                 QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*.lib");
                 QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*.pdb");
                 QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*debug.dll");
-                File.Move(Path.Combine(folder, "mysqld.exe"), Path.Combine(folder, "bin", "mysqld.exe"));
-                File.Move(Path.Combine(folder, "mysqladmin.exe"), Path.Combine(folder, "bin", "mysqladmin.exe"));
+                foreach (var executeFileFullName in Directory.GetFiles(folder, "*.exe"))
+                {
+                    var executeFileName = Path.GetFileName(executeFileFullName);
+                    File.Move(executeFileFullName, Path.Combine(folder, "bin", executeFileName));
+                }
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib", "plugin"), "debug");
                 QbFile.DeleteFiles(Path.Combine(folder, "lib", "plugin", "debug"), "*.pdb");
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "mecab");
                 QbFile.DeleteFiles(Path.Combine(folder, "lib"), "*.lib");
-                QbFile.DeleteFiles(Path.Combine(folder, "lib"), "libmysql.dll");
                 File.Delete(file);
                 break;
             }
@@ -154,9 +171,8 @@ foreach (var rid in rids)
                         rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.17-aarch64");
                     file = Path.Combine(binFolder, Path.GetFileName(url));
                     Console.WriteLine($"正在从[{url}]下载文件...");
-                    using (var fs = File.OpenWrite(file))
-                    using (var ns = httpClient.GetStreamAsync(url).Result)
-                        ns.CopyTo(fs);
+                    QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
+                    Console.WriteLine();
                     Console.WriteLine($"正在解压文件[{file}]...");
 
                     var tarFile = Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file));
@@ -189,10 +205,8 @@ foreach (var rid in rids)
                         rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.12-aarch64");
                     file = Path.Combine(binFolder, Path.GetFileName(url));
                     Console.WriteLine($"正在从[{url}]下载文件...");
-                    using (var fs = File.OpenWrite(file))
-                    using (var ns = httpClient.GetStreamAsync(url).Result)
-                        ns.CopyTo(fs);
-
+                    QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
+                    Console.WriteLine();
                     Console.WriteLine($"正在解压文件[{file}]...");
                     var tarFile = Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file));
 
@@ -221,15 +235,25 @@ foreach (var rid in rids)
                 QbFolder.DeleteFolders(folder, "include");
                 QbFolder.DeleteFolders(folder, "man");
                 QbFolder.DeleteFolders(folder, "support-files");
-                File.Move(Path.Combine(folder, "bin", "mysqld"), Path.Combine(folder, "mysqld"));
-                File.Move(Path.Combine(folder, "bin", "mysqladmin"), Path.Combine(folder, "mysqladmin"));
+
+                foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin")))
+                {
+                    var executeFileName = Path.GetFileName(executeFileFullName);
+                    if(executeFileName.Contains("."))
+                        continue;
+                    File.Move(executeFileFullName, Path.Combine(folder, executeFileName));
+                }
                 QbFolder.DeleteFolders(folder, "bin");
                 Directory.CreateDirectory(Path.Combine(folder, "bin"));
-                File.Move(Path.Combine(folder, "mysqld"), Path.Combine(folder, "bin", "mysqld"));
-                File.Move(Path.Combine(folder, "mysqladmin"), Path.Combine(folder, "bin", "mysqladmin"));
+                foreach (var executeFileFullName in Directory.GetFiles(folder))
+                {
+                    var executeFileName = Path.GetFileName(executeFileFullName);
+                    if (executeFileName.Contains("."))
+                        continue;
+                    File.Move(executeFileFullName, Path.Combine(folder, "bin", executeFileName));
+                }
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib", "plugin"), "debug");
                 QbFile.DeleteFiles(Path.Combine(folder, "lib"), "*.a");
-                QbFile.DeleteFiles(Path.Combine(folder, "lib"), "libmysqlclient.so.*");
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "mecab");
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "pkgconfig");
                 QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(folder, "lib"));
@@ -259,9 +283,4 @@ foreach (var rid in rids)
     }
 }
 Console.WriteLine("完成");
-//如果是在Windows平台，则打开窗口
-if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-{
-    try { QbCommand.Run("Explorer", @"bin"); }
-    catch { }
-}
+QbGui.OpenFolder("bin");
