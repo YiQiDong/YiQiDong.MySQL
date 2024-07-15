@@ -182,16 +182,17 @@ foreach (var rid in rids)
                         QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
                         Console.WriteLine();
                     }
-                    Console.WriteLine($"正在解压文件[{file}]...");
 
-                    var tarFile = Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file));
+                    Console.WriteLine($"正在解压文件[{file}]...");
+                    var tarMemoryStream = new MemoryStream();
+                    //解压到内存中
                     using (var fileStream = File.Open(file, FileMode.Open))
                     using (var xzStream = new SharpCompress.Compressors.Xz.XZStream(fileStream))
-                    using (var tarFileStream = File.OpenWrite(tarFile))
-                        xzStream.CopyTo(tarFileStream);
-
-                    Console.WriteLine($"正在解压文件[{tarFile}]...");
-                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarFile))
+                        xzStream.CopyTo(tarMemoryStream);
+                    tarMemoryStream.Seek(0, SeekOrigin.Begin);
+                    //解压到文件
+                    using(tarMemoryStream)
+                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarMemoryStream))
                     {
                         foreach (var tarEntry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
@@ -203,8 +204,7 @@ foreach (var rid in rids)
                         }
                     }
                     Thread.Sleep(1000);
-                    File.Delete(tarFile);
-                    Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(tarFile)), folder);
+                    Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), folder);
                 }
                 //如果是5.7以上版本
                 else if (version >= new Version(5, 7))
@@ -220,15 +220,10 @@ foreach (var rid in rids)
                         Console.WriteLine();
                     }
                     Console.WriteLine($"正在解压文件[{file}]...");
-                    var tarFile = Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file));
-
+                    
                     using (var fileStream = File.Open(file, FileMode.Open))
                     using (var gzStream = new GZipStream(fileStream, CompressionMode.Decompress))
-                    using (var tarFileStream = File.OpenWrite(tarFile))
-                        gzStream.CopyTo(tarFileStream);
-
-                    Console.WriteLine($"正在解压文件[{tarFile}]...");
-                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarFile))
+                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(gzStream))
                     {
                         foreach (var tarEntry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
@@ -240,14 +235,13 @@ foreach (var rid in rids)
                         }
                     }
                     Thread.Sleep(1000);
-                    File.Delete(tarFile);
-                    Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(tarFile)), folder);
+                    Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), folder);
                 }
                 QbFolder.DeleteFolders(folder, "docs");
                 QbFolder.DeleteFolders(folder, "include");
                 QbFolder.DeleteFolders(folder, "man");
                 QbFolder.DeleteFolders(folder, "support-files");
-                QbFile.DeleteFiles("bin","*-debug*");
+                QbFile.Delete("bin/mysqld-debug");
 
                 foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin")))
                 {
