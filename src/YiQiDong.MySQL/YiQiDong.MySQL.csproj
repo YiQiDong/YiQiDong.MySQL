@@ -8,14 +8,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="MySqlConnector" Version="2.3.4" />
-		<PackageReference Include="YiQiDong.Core" Version="2.3.8" />
+		<PackageReference Include="YiQiDong.Core" Version="2.3.9" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Update="my.ini">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="YiQiDong.Image.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

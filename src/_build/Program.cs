@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -106,14 +107,14 @@ if (rids == null || rids.Length == 0)
 var binFolder = Path.Combine(Environment.CurrentDirectory, "bin");
 if (!Directory.Exists(binFolder))
     Directory.CreateDirectory(binFolder);
-var displayDownloadProgress = new Action<QbNet.TransferProgress>(t=>
+var displayDownloadProgress = new Action<QbNet.TransferProgress>(t =>
 {
     QbConsole.DisplaySameLineInConsole($"[{t.Current * 100 / t.Total}%]进度：{t.Current}/{t.Total}，速度：{t.Speed}，剩余时间：{t.RemainingTime}");
 });
 foreach (var rid in rids)
 {
     Console.WriteLine($"开始打包[{rid}]...");
-    
+
     var folder = Path.Combine(binFolder, "MySQL");
     if (Directory.Exists(folder))
     {
@@ -239,7 +240,7 @@ foreach (var rid in rids)
                 foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin")))
                 {
                     var executeFileName = Path.GetFileName(executeFileFullName);
-                    if(executeFileName.Contains("."))
+                    if (executeFileName.Contains("."))
                         continue;
                     File.Move(executeFileFullName, Path.Combine(folder, executeFileName));
                 }
@@ -266,13 +267,23 @@ foreach (var rid in rids)
     QbCommand.Run("dotnet", $"publish src/{productDir} -c Release -o {folder} -r {rid} --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true");
     var versionString = version.ToString();
     var imageMetaFile = Path.Combine(folder, "YiQiDong.Image.json");
-    QbJson.WriteString(imageMetaFile, "Version", versionString);
-    QbJson.Write(imageMetaFile, "Platform", new[] { rid });
+    var imageInfo = new YiQiDong.Protocol.V1.Model.ImageInfo()
+    {
+        DefaultId = "MySQL",
+        Name = "MySQL",
+        Version = versionString,
+        BuildTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+        Tags = new[] { "数据库" },
+        Description = "MySQL 是最流行的关系型数据库管理系统，在 WEB 应用方面 MySQL 是最好的 RDBMS(Relational Database Management System：关系数据库管理系统)应用软件之一。",
+        Platform = new[] { rid },
+        Path = new[] { "bin" }
+    };
     //修改Agent的值
     if (rid.StartsWith("win-"))
-        QbJson.WriteString(imageMetaFile, "AgentExecute", $"{productDir}.exe");
+        imageInfo.AgentExecute = $"{productDir}.exe";
     else
-        QbJson.WriteString(imageMetaFile, "AgentExecute", productDir);
+        imageInfo.AgentExecute = productDir;
+    File.WriteAllText(imageMetaFile, JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions() { WriteIndented = true }));
 
     var outFile = $"bin/MySQL-{versionString}-{rid}.ymg";
     Console.WriteLine($"正在制作弈启动镜像[{rid}]...");
