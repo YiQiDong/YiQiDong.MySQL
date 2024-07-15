@@ -11,7 +11,6 @@ using System.Linq;
 using YiQiDong.MySQL.Functions;
 using YiQiDong.MySQL.Utils;
 using System.Threading;
-using System.Net.Sockets;
 
 namespace YiQiDong.MySQL
 {
@@ -73,7 +72,7 @@ namespace YiQiDong.MySQL
             var imageFolder = AgentContext.Container.ImageFolder;
             var dataFolder = Config.Instance.GetDataFolder();
             //检查复制my.ini文件
-            FilsSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
+            FileSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
             //是否已初始化
             var initialized = true;
             //检查数据库是否初始化，如果不存在，则初始化

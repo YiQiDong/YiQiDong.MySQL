@@ -107,6 +107,9 @@ if (rids == null || rids.Length == 0)
 var binFolder = Path.Combine(Environment.CurrentDirectory, "bin");
 if (!Directory.Exists(binFolder))
     Directory.CreateDirectory(binFolder);
+var cacheFolder = Path.Combine(binFolder, "cache");
+if (!Directory.Exists(cacheFolder))
+    Directory.CreateDirectory(cacheFolder);
 var displayDownloadProgress = new Action<QbNet.TransferProgress>(t =>
 {
     QbConsole.DisplaySameLineInConsole($"[{t.Current * 100 / t.Total}%]进度：{t.Current}/{t.Total}，速度：{t.Speed}，剩余时间：{t.RemainingTime}");
@@ -127,10 +130,13 @@ foreach (var rid in rids)
             {
                 //开始下载win-x64版本                    
                 var url = string.Format(URL_TEMPLATE_WINDOWS, mirrorUrl, version.Major, version.Minor, version.Build, "winx64");
-                var file = Path.Combine(binFolder, Path.GetFileName(url));
-                Console.WriteLine($"正在从[{url}]下载文件...");
-                QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
-                Console.WriteLine();
+                var file = Path.Combine(cacheFolder, Path.GetFileName(url));
+                if (!File.Exists(file))
+                {
+                    Console.WriteLine($"正在从[{url}]下载文件...");
+                    QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
+                    Console.WriteLine();
+                }
                 Console.WriteLine($"正在解压文件[{file}]...");
                 ZipFile.ExtractToDirectory(file, binFolder);
                 Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file)), folder);
@@ -155,7 +161,6 @@ foreach (var rid in rids)
                 QbFile.DeleteFiles(Path.Combine(folder, "lib", "plugin", "debug"), "*.pdb");
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "mecab");
                 QbFile.DeleteFiles(Path.Combine(folder, "lib"), "*.lib");
-                File.Delete(file);
                 break;
             }
         default:
@@ -170,10 +175,13 @@ foreach (var rid in rids)
                     url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
                         version.Major, version.Minor, version.Build,
                         rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.17-aarch64");
-                    file = Path.Combine(binFolder, Path.GetFileName(url));
-                    Console.WriteLine($"正在从[{url}]下载文件...");
-                    QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
-                    Console.WriteLine();
+                    file = Path.Combine(cacheFolder, Path.GetFileName(url));
+                    if (!File.Exists(file))
+                    {
+                        Console.WriteLine($"正在从[{url}]下载文件...");
+                        QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
+                        Console.WriteLine();
+                    }
                     Console.WriteLine($"正在解压文件[{file}]...");
 
                     var tarFile = Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file));
@@ -196,7 +204,6 @@ foreach (var rid in rids)
                     }
                     Thread.Sleep(1000);
                     Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(tarFile)), folder);
-                    File.Delete(tarFile);
                 }
                 //如果是5.7以上版本
                 else if (version >= new Version(5, 7))
@@ -204,10 +211,13 @@ foreach (var rid in rids)
                     url = string.Format(URL_TEMPLATE_LINUX_V5_7, mirrorUrl,
                         version.Major, version.Minor, version.Build,
                         rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.12-aarch64");
-                    file = Path.Combine(binFolder, Path.GetFileName(url));
-                    Console.WriteLine($"正在从[{url}]下载文件...");
-                    QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
-                    Console.WriteLine();
+                    file = Path.Combine(cacheFolder, Path.GetFileName(url));
+                    if (!File.Exists(file))
+                    {
+                        Console.WriteLine($"正在从[{url}]下载文件...");
+                        QbNet.DownloadFile(url, file, CancellationToken.None, displayDownloadProgress).Wait();
+                        Console.WriteLine();
+                    }
                     Console.WriteLine($"正在解压文件[{file}]...");
                     var tarFile = Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file));
 
@@ -230,7 +240,6 @@ foreach (var rid in rids)
                     }
                     Thread.Sleep(1000);
                     Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(tarFile)), folder);
-                    File.Delete(tarFile);
                 }
                 QbFolder.DeleteFolders(folder, "docs");
                 QbFolder.DeleteFolders(folder, "include");
