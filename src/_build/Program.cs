@@ -319,7 +319,12 @@ foreach (var rid in rids)
                     Thread.Sleep(1000);
                     Directory.Move(Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), buildFolder);
                 }
-                QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(buildFolder, "lib"));
+                switch (rid)
+                {
+                    case "linux-x64":
+                        QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(buildFolder, "lib"));
+                        break;
+                }
                 break;
             }
     }
@@ -338,7 +343,11 @@ foreach (var rid in rids)
         Tags = new[] { "数据库" },
         Description = "MySQL 是最流行的关系型数据库管理系统，在 WEB 应用方面 MySQL 是最好的 RDBMS(Relational Database Management System：关系数据库管理系统)应用软件之一。",
         Platform = new[] { rid },
-        Path = new[] { "bin" }
+        Path = new[] { "bin" },
+        Environment = new Dictionary<string, string>()
+        {
+            ["LD_LIBRARY_PATH"] = "lib"
+        }
     };
     //修改Agent的值
     if (rid.StartsWith("win-"))
