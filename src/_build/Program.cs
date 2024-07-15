@@ -15,14 +15,30 @@ using System.Threading;
 
 var productDir = "YiQiDong.MySQL";
 var appFolder = QbFolder.GetAppFolder();
-if (appFolder == Environment.CurrentDirectory)
+if (Environment.CurrentDirectory == appFolder)
     Environment.CurrentDirectory = Path.GetFullPath("../../../../../");
+else if (Environment.CurrentDirectory == Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(appFolder))))
+    Environment.CurrentDirectory = Path.GetFullPath("../../");
 //https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.42-winx64.zip
 string URL_TEMPLATE_WINDOWS = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.zip";
 string URL_TEMPLATE_LINUX_V5_7 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.gz";
 string URL_TEMPLATE_LINUX_V8 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.xz";
 string DATA_FILE_V5_7 = $"src/{productDir}/Resource/data_v5.7.zip";
 string DATA_FILE_V8 = $"src/{productDir}/Resource/data_v8.zip";
+
+var mysqlVersionDict = new Dictionary<string, string>()
+{
+    ["5.7"] = "5.7",
+    ["8.0"] = "8.0",
+    ["8.4"] = "8.4",
+    ["9.0"] = "9.0",
+    [""] = "手动输入"
+};
+var mirrorDict = new Dictionary<string, string>()
+{
+    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站",
+    ["https://cdn.mysql.com/Downloads/"] = "MySQL CDN"
+};
 
 Console.WriteLine("----------------------------------");
 Console.WriteLine("  欢迎使用MySQL编译脚本");
@@ -53,15 +69,12 @@ httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Chr
 httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Safari/537.36"));
 
 Console.WriteLine("请选择要编译的MySQL版本：");
-var mysqlVersion = QbSelect.ArrowSelect(new Dictionary<string, string>()
-{
-    ["5.7"] = "5.7",
-    ["8.0"] = "8.0",
-    ["8.4"] = "8.4",
-    ["9.0"] = "9.0",
-    [""] = "手动输入"
-}.ToArray(), selectedForegroundColor: ConsoleColor.Green);
 
+var mysqlVersion = mysqlVersionDict.First().Key;
+if (!Console.IsInputRedirected)
+{
+    mysqlVersion = QbSelect.ArrowSelect(mysqlVersionDict.ToArray(), selectedForegroundColor: ConsoleColor.Green);
+}
 if (string.IsNullOrEmpty(mysqlVersion))
 {
     Console.Write("请输入完整版本号: ");
@@ -85,12 +98,11 @@ else
     Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
 }
 Console.WriteLine("请选择镜像站：");
-var mirrorUrl = QbSelect.ArrowSelect(new Dictionary<string, string>()
+var mirrorUrl = mirrorDict.First().Key;
+if (!Console.IsInputRedirected)
 {
-    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站",
-    ["https://cdn.mysql.com/Downloads/"] = "MySQL CDN"
-}.ToArray(), selectedForegroundColor: ConsoleColor.Green);
-
+    mirrorUrl = QbSelect.ArrowSelect(mirrorDict.ToArray(), selectedForegroundColor: ConsoleColor.Green);
+};
 Console.WriteLine("请选择运行平台(一个都不选代表全选)：");
 var ridDict = new Dictionary<string, string>()
 {
@@ -100,7 +112,11 @@ var ridDict = new Dictionary<string, string>()
 //如果是8.0以上版本，才有arm64架构的二进制文件;
 if (version >= Version.Parse("8.0"))
     ridDict["linux-arm64"] = "linux-arm64";
-var rids = QbSelect.MultiSelect(ridDict.ToArray(), selectedForegroundColor: ConsoleColor.Green);
+string[] rids = new[] { "linux-x64" };
+if (!Console.IsInputRedirected)
+{
+    rids = QbSelect.MultiSelect(ridDict.ToArray(), selectedForegroundColor: ConsoleColor.Green);
+}
 if (rids == null || rids.Length == 0)
     rids = ridDict.Keys.ToArray();
 
@@ -114,15 +130,23 @@ var displayDownloadProgress = new Action<QbNet.TransferProgress>(t =>
 {
     QbConsole.DisplaySameLineInConsole($"[{t.Current * 100 / t.Total}%]进度：{t.Current}/{t.Total}，速度：{t.Speed}，剩余时间：{t.RemainingTime}");
 });
+var buildTime = DateTime.Now;
+
 foreach (var rid in rids)
 {
     Console.WriteLine($"开始打包[{rid}]...");
 
-    var folder = Path.Combine(binFolder, "MySQL");
-    if (Directory.Exists(folder))
+    var buildFolder = Path.Combine(binFolder, "build");
+    if (Directory.Exists(buildFolder))
     {
-        Console.WriteLine($"正在清理目录...");
-        Directory.Delete(folder, true);
+        Console.WriteLine($"正在清理构建目录...");
+        Directory.Delete(buildFolder, true);
+    }
+    var tmpFolder = Path.Combine(binFolder, "tmp");
+    if (Directory.Exists(tmpFolder))
+    {
+        Console.WriteLine($"正在清理临时目录...");
+        Directory.Delete(tmpFolder, true);
     }
     switch (rid)
     {
@@ -138,35 +162,47 @@ foreach (var rid in rids)
                     Console.WriteLine();
                 }
                 Console.WriteLine($"正在解压文件[{file}]...");
-                ZipFile.ExtractToDirectory(file, binFolder);
-                Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(file)), folder);
+                var ignoreKeywords = new[] { "/docs/", "/include/", "/mecab/", "test", "debug" };
+                var ignoreSuffixes = new[] { ".pdb", ".lib", "mysql_embedded.exe" };
+                using (var archive = ZipFile.OpenRead(file))
+                {
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (ignoreKeywords.Any(item => entry.FullName.Contains(item)))
+                            continue;
+                        if (ignoreSuffixes.Any(item => entry.FullName.EndsWith(item)))
+                            continue;
+
+                        var extractFilePath = Path.Combine(tmpFolder, entry.FullName);
+                        try
+                        {
+                            if (extractFilePath.EndsWith("/"))
+                            {
+                                Directory.CreateDirectory(extractFilePath);
+                            }
+                            else
+                            {
+                                entry.ExtractToFile(extractFilePath);
+                            }
+                        }
+                        catch
+                        {
+                            Console.WriteLine(extractFilePath);
+                            throw;
+                        }
+                    }
+                }
+                Directory.Move(Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(file)), buildFolder);
                 Thread.Sleep(1000);
-                QbFolder.DeleteFolders(folder, "docs");
-                QbFolder.DeleteFolders(folder, "include");
-                foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin"), "*.exe"))
-                {
-                    var executeFileName = Path.GetFileName(executeFileFullName);
-                    File.Move(executeFileFullName, Path.Combine(folder, executeFileName));
-                }
-                QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*.exe");
-                QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*.lib");
-                QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*.pdb");
-                QbFile.DeleteFiles(Path.Combine(folder, "bin"), "*debug.dll");
-                foreach (var executeFileFullName in Directory.GetFiles(folder, "*.exe"))
-                {
-                    var executeFileName = Path.GetFileName(executeFileFullName);
-                    File.Move(executeFileFullName, Path.Combine(folder, "bin", executeFileName));
-                }
-                QbFolder.DeleteFolders(Path.Combine(folder, "lib", "plugin"), "debug");
-                QbFile.DeleteFiles(Path.Combine(folder, "lib", "plugin", "debug"), "*.pdb");
-                QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "mecab");
-                QbFile.DeleteFiles(Path.Combine(folder, "lib"), "*.lib");
                 break;
             }
         default:
             {
                 var file = string.Empty;
                 var url = string.Empty;
+
+                var ignoreKeywords = new[] { "/docs/", "/include/", "/mecab/", "/pkgconfig/", "test", "debug" };
+                var ignoreSuffixes = new[] { ".a", "mysql_embedded" };
 
                 //开始下载linux_x64版本
                 //如果是8.0以上版本
@@ -184,29 +220,48 @@ foreach (var rid in rids)
                     }
 
                     Console.WriteLine($"正在解压文件[{file}]...");
-                    var tarMemoryStream = new MemoryStream();
-                    //解压到内存中
+                    var tarArchiveFile = Path.Combine(cacheFolder, "tmp.tar");
+                    //解压gz文件
                     using (var fileStream = File.Open(file, FileMode.Open))
                     using (var xzStream = new SharpCompress.Compressors.Xz.XZStream(fileStream))
-                        xzStream.CopyTo(tarMemoryStream);
-                    tarMemoryStream.Seek(0, SeekOrigin.Begin);
-                    //解压到文件
-                    using(tarMemoryStream)
-                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarMemoryStream))
+                    using (var fs = File.OpenWrite(tarArchiveFile))
+                        xzStream.CopyTo(fs);
+
+                    //解压tar文件
+                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarArchiveFile))
                     {
-                        foreach (var tarEntry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
+                        foreach (var entry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
-                            if (tarEntry.Key.EndsWith("mysqld-debug"))
+                            if (ignoreKeywords.Any(item => entry.Key.Contains(item)))
                                 continue;
-                            tarEntry.WriteToDirectory(binFolder, new ExtractionOptions()
+                            if (ignoreSuffixes.Any(item => entry.Key.EndsWith(item)))
+                                continue;
+                            var extractFilePath = Path.Combine(tmpFolder, entry.Key);
+                            try
                             {
-                                ExtractFullPath = true,
-                                Overwrite = true
-                            });
+                                if (entry.IsDirectory)
+                                {
+                                    Directory.CreateDirectory(extractFilePath);
+                                }
+                                else
+                                {
+                                    if (!string.IsNullOrEmpty(entry.LinkTarget))
+                                        continue;
+                                    var folder = Path.GetDirectoryName(extractFilePath);
+                                    if (!Directory.Exists(folder))
+                                        Directory.CreateDirectory(folder);
+                                    entry.WriteToFile(extractFilePath);
+                                }
+                            }
+                            catch
+                            {
+                                Console.WriteLine(extractFilePath);
+                                throw;
+                            }
                         }
                     }
                     Thread.Sleep(1000);
-                    Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), folder);
+                    Directory.Move(Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), buildFolder);
                 }
                 //如果是5.7以上版本
                 else if (version >= new Version(5, 7))
@@ -222,63 +277,64 @@ foreach (var rid in rids)
                         Console.WriteLine();
                     }
                     Console.WriteLine($"正在解压文件[{file}]...");
-                    
+                    var tarArchiveFile = Path.Combine(cacheFolder, "tmp.tar");
+                    //解压gz文件
                     using (var fileStream = File.Open(file, FileMode.Open))
                     using (var gzStream = new GZipStream(fileStream, CompressionMode.Decompress))
-                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(gzStream))
+                    using (var fs = File.OpenWrite(tarArchiveFile))
+                        gzStream.CopyTo(fs);
+                    //解压tar文件
+                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarArchiveFile))
                     {
-                        foreach (var tarEntry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
+                        foreach (var entry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
-                            tarEntry.WriteToDirectory(binFolder, new ExtractionOptions()
+                            if (ignoreKeywords.Any(item => entry.Key.Contains(item)))
+                                continue;
+                            if (ignoreSuffixes.Any(item => entry.Key.EndsWith(item)))
+                                continue;
+                            var extractFilePath = Path.Combine(tmpFolder, entry.Key);
+                            try
                             {
-                                ExtractFullPath = true,
-                                Overwrite = true
-                            });
+                                if (entry.IsDirectory)
+                                {
+                                    Directory.CreateDirectory(extractFilePath);
+                                }
+                                else
+                                {
+                                    if (!string.IsNullOrEmpty(entry.LinkTarget))
+                                        continue;
+                                    var folder = Path.GetDirectoryName(extractFilePath);
+                                    if (!Directory.Exists(folder))
+                                        Directory.CreateDirectory(folder);
+                                    entry.WriteToFile(extractFilePath);
+                                }
+                            }
+                            catch
+                            {
+                                Console.WriteLine(extractFilePath);
+                                throw;
+                            }
                         }
                     }
                     Thread.Sleep(1000);
-                    Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), folder);
+                    Directory.Move(Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), buildFolder);
                 }
-                QbFolder.DeleteFolders(folder, "docs");
-                QbFolder.DeleteFolders(folder, "include");
-                QbFolder.DeleteFolders(folder, "man");
-                QbFolder.DeleteFolders(folder, "support-files");
-
-                foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin")))
-                {
-                    var executeFileName = Path.GetFileName(executeFileFullName);
-                    if (executeFileName.Contains("."))
-                        continue;
-                    File.Move(executeFileFullName, Path.Combine(folder, executeFileName));
-                }
-                QbFolder.DeleteFolders(folder, "bin");
-                Directory.CreateDirectory(Path.Combine(folder, "bin"));
-                foreach (var executeFileFullName in Directory.GetFiles(folder))
-                {
-                    var executeFileName = Path.GetFileName(executeFileFullName);
-                    if (executeFileName.Contains("."))
-                        continue;
-                    File.Move(executeFileFullName, Path.Combine(folder, "bin", executeFileName));
-                }
-                QbFolder.DeleteFolders(Path.Combine(folder, "lib", "plugin"), "debug");
-                QbFile.DeleteFiles(Path.Combine(folder, "lib"), "*.a");
-                QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "mecab");
-                QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "pkgconfig");
-                QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(folder, "lib"));
+                QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(buildFolder, "lib"));
                 break;
             }
     }
+    Directory.Delete(tmpFolder, true);
 
     Console.WriteLine("正在发布YiQiDong.MySQL项目...");
-    QbCommand.Run("dotnet", $"publish src/{productDir} -c Release -o {folder} -r {rid} --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true");
+    QbCommand.Run("dotnet", $"publish src/{productDir} -c Release -o {buildFolder} -r {rid} --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true");
     var versionString = version.ToString();
-    var imageMetaFile = Path.Combine(folder, "YiQiDong.Image.json");
+    var imageMetaFile = Path.Combine(buildFolder, "YiQiDong.Image.json");
     var imageInfo = new YiQiDong.Protocol.V1.Model.ImageInfo()
     {
         DefaultId = "MySQL",
         Name = "MySQL",
         Version = versionString,
-        BuildTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+        BuildTime = buildTime.ToString("yyyy-MM-dd HH:mm:ss"),
         Tags = new[] { "数据库" },
         Description = "MySQL 是最流行的关系型数据库管理系统，在 WEB 应用方面 MySQL 是最好的 RDBMS(Relational Database Management System：关系数据库管理系统)应用软件之一。",
         Platform = new[] { rid },
@@ -291,13 +347,14 @@ foreach (var rid in rids)
         imageInfo.AgentExecute = productDir;
     File.WriteAllText(imageMetaFile, JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions() { WriteIndented = true }));
 
-    var outFile = $"bin/MySQL-{versionString}-{rid}.ymg";
+    var outFile = $"bin/MySQL-{versionString}-{rid}_{buildTime.ToString("yyyyMMddHHmmss")}.ymg";
     Console.WriteLine($"正在制作弈启动镜像[{rid}]...");
     using (var archive = SharpCompress.Archives.Zip.ZipArchive.Create())
     {
-        archive.AddAllFromDirectory(folder);
+        archive.AddAllFromDirectory(buildFolder);
         archive.SaveTo(outFile, CompressionType.LZMA);
     }
+    Directory.Delete(buildFolder, true);
 }
 Console.WriteLine("完成");
 QbGui.OpenFolder("bin");
