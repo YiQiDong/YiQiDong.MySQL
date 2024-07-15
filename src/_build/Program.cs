@@ -196,6 +196,8 @@ foreach (var rid in rids)
                     {
                         foreach (var tarEntry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
+                            if (tarEntry.Key.EndsWith("mysqld-debug"))
+                                continue;
                             tarEntry.WriteToDirectory(binFolder, new ExtractionOptions()
                             {
                                 ExtractFullPath = true,
@@ -241,7 +243,6 @@ foreach (var rid in rids)
                 QbFolder.DeleteFolders(folder, "include");
                 QbFolder.DeleteFolders(folder, "man");
                 QbFolder.DeleteFolders(folder, "support-files");
-                QbFile.Delete("bin/mysqld-debug");
 
                 foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin")))
                 {
