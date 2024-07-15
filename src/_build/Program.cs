@@ -203,6 +203,7 @@ foreach (var rid in rids)
                         }
                     }
                     Thread.Sleep(1000);
+                    File.Delete(tarFile);
                     Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(tarFile)), folder);
                 }
                 //如果是5.7以上版本
@@ -239,12 +240,14 @@ foreach (var rid in rids)
                         }
                     }
                     Thread.Sleep(1000);
+                    File.Delete(tarFile);
                     Directory.Move(Path.Combine(binFolder, Path.GetFileNameWithoutExtension(tarFile)), folder);
                 }
                 QbFolder.DeleteFolders(folder, "docs");
                 QbFolder.DeleteFolders(folder, "include");
                 QbFolder.DeleteFolders(folder, "man");
                 QbFolder.DeleteFolders(folder, "support-files");
+                QbFile.DeleteFiles("bin","*-debug*");
 
                 foreach (var executeFileFullName in Directory.GetFiles(Path.Combine(folder, "bin")))
                 {
@@ -267,7 +270,6 @@ foreach (var rid in rids)
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "mecab");
                 QbFolder.DeleteFolders(Path.Combine(folder, "lib"), "pkgconfig");
                 QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(folder, "lib"));
-                File.Delete(file);
                 break;
             }
     }
