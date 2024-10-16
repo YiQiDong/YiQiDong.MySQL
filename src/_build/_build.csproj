@@ -7,8 +7,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
-		<PackageReference Include="Quick.Build" Version="1.0.10" />
-		<PackageReference Include="SharpCompress" Version="0.37.2" />
+		<PackageReference Include="Quick.Build" Version="1.0.11" />
+		<PackageReference Include="SharpCompress" Version="0.38.0" />
 		<PackageReference Include="YiQiDong.Core" Version="2.3.9" />
 	</ItemGroup>
 

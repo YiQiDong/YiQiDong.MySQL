@@ -8,7 +8,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -208,9 +207,14 @@ foreach (var rid in rids)
                 //如果是8.0以上版本
                 if (version >= new Version(8, 0))
                 {
-                    url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
-                        version.Major, version.Minor, version.Build,
-                        rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.17-aarch64");
+                    if (version >= new Version(8, 4))
+                        url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
+                            version.Major, version.Minor, version.Build,
+                            rid == "linux-x64" ? "linux-glibc2.17-x86_64" : "linux-glibc2.17-aarch64");
+                    else
+                        url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
+                            version.Major, version.Minor, version.Build,
+                            rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.17-aarch64");
                     file = Path.Combine(cacheFolder, Path.GetFileName(url));
                     if (!File.Exists(file))
                     {

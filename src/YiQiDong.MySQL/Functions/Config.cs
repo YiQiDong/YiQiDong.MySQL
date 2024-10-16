@@ -90,7 +90,7 @@ namespace YiQiDong.MySQL.Functions
 
             var ret = Properties["bind-address"];
             if (ret == "0.0.0.0")
-                ret = "localhost";
+                ret = "127.0.0.1";
             return ret;
         }
 
