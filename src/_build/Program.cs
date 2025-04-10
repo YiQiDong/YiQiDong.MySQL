@@ -19,6 +19,8 @@ string URL_TEMPLATE_LINUX_V8 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.xz";
 string DATA_FILE_V5_7 = $"src/{productDir}/Resource/data_v5.7.zip";
 string DATA_FILE_V8 = $"src/{productDir}/Resource/data_v8.zip";
 
+var mirrorUrl = "https://cdn.mysql.com/Downloads/";
+
 var mysqlVersionDict = new Dictionary<string, string>()
 {
     ["5.7"] = "5.7",
@@ -26,11 +28,6 @@ var mysqlVersionDict = new Dictionary<string, string>()
     ["8.4"] = "8.4",
     ["9.0"] = "9.0",
     [""] = "手动输入"
-};
-var mirrorDict = new Dictionary<string, string>()
-{
-    ["https://dev.mysql.com/get/Downloads/"] = "MySQL官方网站",
-    ["https://cdn.mysql.com/Downloads/"] = "MySQL CDN"
 };
 
 Console.WriteLine("----------------------------------");
@@ -72,12 +69,7 @@ else
     version = Version.Parse(mysqlVersionStr);
     Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
 }
-Console.WriteLine("请选择镜像站：");
-var mirrorUrl = mirrorDict.First().Key;
-if (!Console.IsInputRedirected)
-{
-    mirrorUrl = QbSelect.ArrowSelect(mirrorDict.ToArray(), selectedForegroundColor: ConsoleColor.Green);
-};
+
 Console.WriteLine("请选择运行平台(一个都不选代表全选)：");
 var ridDict = new Dictionary<string, string>()
 {
@@ -190,7 +182,7 @@ foreach (var rid in rids)
                     else
                         url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
                             version.Major, version.Minor, version.Build,
-                            rid == "linux-x64" ? "linux-glibc2.12-x86_64" : "linux-glibc2.17-aarch64");
+                            rid == "linux-x64" ? "linux-glibc2.17-x86_64" : "linux-glibc2.17-aarch64");
                     file = Path.Combine(cacheFolder, Path.GetFileName(url));
                     if (!File.Exists(file))
                     {
@@ -202,10 +194,18 @@ foreach (var rid in rids)
                     Console.WriteLine($"正在解压文件[{file}]...");
                     var tarArchiveFile = Path.Combine(cacheFolder, "tmp.tar");
                     //解压gz文件
-                    using (var fileStream = File.Open(file, FileMode.Open))
-                    using (var xzStream = new SharpCompress.Compressors.Xz.XZStream(fileStream))
-                    using (var fs = File.OpenWrite(tarArchiveFile))
-                        xzStream.CopyTo(fs);
+                    try
+                    {
+                        using (var fileStream = File.Open(file, FileMode.Open))
+                        using (var xzStream = new SharpCompress.Compressors.Xz.XZStream(fileStream))
+                        using (var fs = File.OpenWrite(tarArchiveFile))
+                            xzStream.CopyTo(fs);
+                    }
+                    catch
+                    {
+                        File.Delete(file);
+                        throw;
+                    }
 
                     //解压tar文件
                     using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarArchiveFile))
