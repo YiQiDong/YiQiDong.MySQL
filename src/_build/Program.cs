@@ -38,29 +38,7 @@ Console.WriteLine("  欢迎使用MySQL编译脚本");
 Console.WriteLine("----------------------------------");
 Version version;
 
-var handler = new HttpClientHandler();
-handler.ServerCertificateCustomValidationCallback = delegate { return true; };
-
-HttpClient httpClient = new HttpClient(handler);
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("text/html"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/xhtml+xml"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/xml;q=0.9"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("image/avif"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("image/webp"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("image/apng"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("*/*;q=0.8"));
-httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/signed-exchange;v=b3;q=0.7"));
-httpClient.DefaultRequestHeaders.AcceptEncoding.Add(StringWithQualityHeaderValue.Parse("*"));
-httpClient.DefaultRequestHeaders.AcceptLanguage.Add(StringWithQualityHeaderValue.Parse("en-US"));
-httpClient.DefaultRequestHeaders.AcceptLanguage.Add(StringWithQualityHeaderValue.Parse("en;q=0.9"));
-httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
-httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Mozilla/5.0"));
-httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("(Windows NT 10.0; Win64; x64)"));
-httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("AppleWebKit/537.36"));
-httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("(KHTML, like Gecko)"));
-httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Chrome/113.0.0.0"));
-httpClient.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse("Safari/537.36"));
-
+var httpClient = QbNet.GetHttpClient();
 Console.WriteLine("请选择要编译的MySQL版本：");
 
 var mysqlVersion = mysqlVersionDict.First().Key;
@@ -77,15 +55,19 @@ else
 {
     Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
     string mysqlVersionStr = null;
-    if (mysqlVersion == "5.7")
+    switch(mysqlVersion)
     {
-        mysqlVersionStr = "5.7.44";
-    }
-    else
-    {
-        var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
-        var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
-        mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+        case "5.7":
+            mysqlVersionStr = "5.7.44";
+            break;
+        case "8.0":
+            mysqlVersionStr = "8.0.41";
+            break;
+        default:
+            var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
+            var mysqlVersionRegex = new Regex(@"MySQL Community Server (?<version>\d+\.\d+.\d+)");
+            mysqlVersionStr = mysqlVersionRegex.Match(mysqlVersionHtml).Groups["version"].Value;
+            break;
     }
     version = Version.Parse(mysqlVersionStr);
     Console.WriteLine($"MySQL {mysqlVersion}的最新版本号是: {mysqlVersionStr}");
