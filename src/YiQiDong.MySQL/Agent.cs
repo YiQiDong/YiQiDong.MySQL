@@ -1,16 +1,11 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 using YiQiDong.Core;
 using YiQiDong.Core.Utils;
 using YiQiDong.Agent;
 using MySqlConnector;
 using Quick.Shell.Utils;
-using System.Linq;
 using YiQiDong.MySQL.Functions;
 using YiQiDong.MySQL.Utils;
-using System.Threading;
 
 namespace YiQiDong.MySQL
 {
@@ -38,14 +33,15 @@ namespace YiQiDong.MySQL
 
         public override void Init()
         {
+            //注册编码提供程序(支持GB2312等编码)
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            
             base.Init();
-            if (AgentContext.IsContainerRuning)
-            {
-                AddFunction(Config.Instance);
-                AddFunction(new PasswordManager(), true);
-                AddFunction(new SqlQuery());
-                MySqlUtils.Init();
-            }
+
+            AddFunction(Config.Instance);
+            AddFunction(new PasswordManager(), true);
+            AddFunction(new SqlQuery());
+            MySqlUtils.Init();
         }
 
         public override void Start()
