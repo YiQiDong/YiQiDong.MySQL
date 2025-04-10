@@ -15,15 +15,20 @@ namespace YiQiDong.MySQL.Functions
     {
         public const string CONFIG_FILE = "my.ini";
         public const string DATA_FOLDER_CONFIG_FILE = "DataFolder.conf";
-        public static Config Instance { get; private set; } = new Config("数据库配置");
+        public static Config Instance { get; private set; }
 
         private string name;
         private string imageFolder;
         private string containerFolder;        
 
-        public override string Name => name;
+        public override string Name => "数据库配置";
         public Dictionary<string, string> Properties = null;
         public string MySqlConfigFile { get; private set; }
+
+        public Config()
+        {
+            Instance =this;
+        }
 
         public void RefreshProperties(string dataFolder)
         {

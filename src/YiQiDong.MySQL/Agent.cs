@@ -38,7 +38,7 @@ namespace YiQiDong.MySQL
             
             base.Init();
 
-            AddFunction(Config.Instance);
+            AddFunction(new Config());
             AddFunction(new PasswordManager(), true);
             AddFunction(new SqlQuery());
             MySqlUtils.Init();
