@@ -329,7 +329,7 @@ foreach (var rid in rids)
     Directory.Delete(tmpFolder, true);
 
     Console.WriteLine("正在发布YiQiDong.MySQL项目...");
-    QbCommand.Run("dotnet", $"publish src/{productDir} -c Release -o {buildFolder} -r {rid} --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true");
+    QbCommand.Run("dotnet", $"publish src/{productDir} -c Release -o {buildFolder} -r {rid}");
     var versionString = version.ToString();
     var imageMetaFile = Path.Combine(buildFolder, "YiQiDong.Image.json");
     var imageInfo = new YiQiDong.Protocol.V1.Model.ImageInfo()

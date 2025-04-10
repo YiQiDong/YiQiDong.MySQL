@@ -5,6 +5,9 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>true</ImplicitUsings>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<PublishTrimmed>true</PublishTrimmed>
+		<PublishSelfContained>true</PublishSelfContained>
+		<PublishSingleFile>true</PublishSingleFile>
 	</PropertyGroup>
 
 	<ItemGroup>
