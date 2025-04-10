@@ -196,6 +196,25 @@ namespace YiQiDong.MySQL.Functions
                         Value = request == null ? Properties[tmpKey] : request.GetFieldValue(tmpKey),
                         Input_AllowBlank = false
                     });
+                tmpKey = "character-set-server";
+                if (Properties.ContainsKey(tmpKey))
+                    list.Add(new FieldForGet()
+                    {
+                        Id = tmpKey,
+                        Name = "服务端字符集",
+                        Type = FieldType.InputSelect,
+                        Input_ReadOnly = isReadOnly,
+                        InputSelect_Options = new Dictionary<string, string>()
+                        {
+                            ["gb2312"] = "gb2312",
+                            ["gbk"] = "gbk",
+                            ["gb18030"] = "gb18030",
+                            ["utf8"] = "utf8",
+                            ["utf8mb4"] = "utf8mb4"
+                        },
+                        Value = request == null ? Properties[tmpKey] : request.GetFieldValue(tmpKey),
+                        Input_AllowBlank = false
+                    });
             }
             return list;
         }

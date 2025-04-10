@@ -1,16 +1,10 @@
 ﻿using Quick.Build;
 using SharpCompress.Archives;
 using SharpCompress.Common;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 var productDir = "YiQiDong.MySQL";
 var appFolder = QbFolder.GetAppFolder();
