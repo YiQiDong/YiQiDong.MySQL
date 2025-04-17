@@ -95,7 +95,7 @@ if (!Directory.Exists(cacheFolder))
     Directory.CreateDirectory(cacheFolder);
 var displayDownloadProgress = new Action<QbNet.TransferProgress>(t =>
 {
-    QbConsole.DisplaySameLineInConsole($"[{t.Current * 100 / t.Total}%]进度：{t.Current}/{t.Total}，速度：{t.Speed}，剩余时间：{t.RemainingTime}");
+    QbConsole.DisplaySameLineInConsole($"[{(t.Current * 100 / t.Total).ToString("N")}%]进度：{t.Current.ToString("N")}/{t.Total.ToString("N")}，速度：{t.Speed.ToString("N")}，剩余时间：{t.RemainingTime}");
 });
 var buildTime = DateTime.Now;
 

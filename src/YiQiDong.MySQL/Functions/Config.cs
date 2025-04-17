@@ -18,7 +18,7 @@ namespace YiQiDong.MySQL.Functions
         public static Config Instance { get; private set; }
 
         private string imageFolder;
-        private string containerFolder;        
+        private string containerFolder;
 
         public override string Name => "数据库配置";
         public Dictionary<string, string> Properties = null;
@@ -116,8 +116,8 @@ namespace YiQiDong.MySQL.Functions
 
         private List<FieldForGet> innerGet(FunctionRequest request, bool isReadOnly = false)
         {
-            List<FieldForGet> list = new List<FieldForGet>();            
-            
+            List<FieldForGet> list = new List<FieldForGet>();
+
             string tmpKey;
             tmpKey = "DataFolder";
             var dataFolder = request == null ? GetDataFolder_ForConfig() : request.GetFieldValue(tmpKey);
@@ -195,6 +195,22 @@ namespace YiQiDong.MySQL.Functions
                         Value = request == null ? Properties[tmpKey] : request.GetFieldValue(tmpKey),
                         Input_AllowBlank = false
                     });
+                tmpKey = "ssl";
+                if (Properties.ContainsKey(tmpKey))
+                    list.Add(new FieldForGet()
+                    {
+                        Id = tmpKey,
+                        Name = "SSL功能",
+                        Type = FieldType.InputSelect,
+                        Input_ReadOnly = isReadOnly,
+                        InputSelect_Options = new Dictionary<string, string>()
+                        {
+                            ["0"] = "关闭",
+                            ["1"] = "开启"
+                        },
+                        Value = request == null ? Properties[tmpKey] : request.GetFieldValue(tmpKey),
+                        Input_AllowBlank = false
+                    });
                 tmpKey = "character-set-server";
                 if (Properties.ContainsKey(tmpKey))
                     list.Add(new FieldForGet()
@@ -261,7 +277,7 @@ namespace YiQiDong.MySQL.Functions
                         IniFileUtils.Save(MySqlConfigFile, request.Fields);
                         //保存成功后重新加载配置文件
                         if (string.IsNullOrEmpty(dataFolder))
-                            dataFolder = containerFolder;                        
+                            dataFolder = containerFolder;
                         RefreshProperties(dataFolder);
                         list.Add(new FieldForGet()
                         {
