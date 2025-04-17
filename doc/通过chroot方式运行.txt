@@ -1,0 +1,4 @@
+1.将ymg文件解压到：/usr/share/MySQL
+2.准备好ubuntu基础镜像，解压到：/ubuntu
+3.运行：
+/usr/share/MySQL/mysql.sh chroot_run /ubuntu /dev /dev/pts /usr/share/zoneinfo /usr/share/MySQL
