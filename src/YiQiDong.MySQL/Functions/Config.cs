@@ -17,7 +17,6 @@ namespace YiQiDong.MySQL.Functions
         public const string DATA_FOLDER_CONFIG_FILE = "DataFolder.conf";
         public static Config Instance { get; private set; }
 
-        private string name;
         private string imageFolder;
         private string containerFolder;        
 
@@ -25,9 +24,13 @@ namespace YiQiDong.MySQL.Functions
         public Dictionary<string, string> Properties = null;
         public string MySqlConfigFile { get; private set; }
 
-        public Config()
+        public Config() : this(AgentContext.Container.ImageFolder, AgentContext.Container.ContainerFolder) { }
+
+        public Config(string imageFolder, string containerFolder)
         {
-            Instance =this;
+            Instance = this;
+            this.containerFolder = containerFolder;
+            this.imageFolder = imageFolder;
         }
 
         public void RefreshProperties(string dataFolder)
@@ -56,15 +59,6 @@ namespace YiQiDong.MySQL.Functions
             {
                 AgentContext.LogWarn($"配置文件[{MySqlConfigFile}]不存在！");
             }
-        }
-
-        private Config(string name)
-        {
-            Instance = this;
-            this.name = name;
-            containerFolder = AgentContext.Container.ContainerFolder;
-            imageFolder = AgentContext.Container.ImageFolder;
-            RefreshProperties(GetDataFolder());
         }
 
         private string GetDataFolder_ForConfig()

@@ -23,6 +23,7 @@ namespace YiQiDong.MySQL
         /// MySQL服务是否已启动
         /// </summary>
         public bool MySqlServiceStarted { get; private set; } = false;
+        private string imageFolder;
 
         public Process Process { get; set; }
 
@@ -35,22 +36,34 @@ namespace YiQiDong.MySQL
         {
             //注册编码提供程序(支持GB2312等编码)
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            
+
             base.Init();
 
-            AddFunction(new Config());
-            AddFunction(new PasswordManager(), true);
-            AddFunction(new SqlQuery());
-            MySqlUtils.Init();
+            if(AgentContext.IsContainerRuning)
+            {
+                imageFolder = AgentContext.Container.ImageFolder;
+                AddFunction(new Config());
+                AddFunction(new PasswordManager(), true);
+                AddFunction(new SqlQuery());
+            }
+            else
+            {
+                imageFolder = AppContext.BaseDirectory;
+                var dataFolder = imageFolder;
+                new Config(imageFolder, dataFolder);
+            }
+            MySqlUtils.Init(imageFolder);
         }
 
         public override void Start()
         {
+            var dataFolder = Config.Instance.GetDataFolder();
+            Config.Instance.RefreshProperties(dataFolder);
             Task.Run(() =>
             {
                 try
                 {
-                    innnerStart();
+                    innnerStart(dataFolder);
                     base.Start();
                 }
                 catch (Exception ex)
@@ -60,13 +73,12 @@ namespace YiQiDong.MySQL
             });
         }
 
-        private void innnerStart()
+        internal void innnerStart(string dataFolder)
         {
-            if (!AgentContext.Container.AutoStart)
+            if (AgentContext.IsContainerRuning && !AgentContext.Container.AutoStart)
                 return;
+                
             MySqlServiceStarted = false;
-            var imageFolder = AgentContext.Container.ImageFolder;
-            var dataFolder = Config.Instance.GetDataFolder();
             //检查复制my.ini文件
             FileSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
             //是否已初始化
@@ -76,7 +88,7 @@ namespace YiQiDong.MySQL
             {
                 initialized = false;
                 AgentContext.LogInfo("正在初始化数据库...");
-                var ret = ProcessUtils.ExecuteProcessStartInfo(MySqlUtils.GetMySqldPsi("--initialize"));
+                var ret = ProcessUtils.ExecuteProcessStartInfo(MySqlUtils.GetMySqldPsi(imageFolder, dataFolder, "--initialize"));
                 if (ret.ExitCode == 0)
                 {
                     AgentContext.LogInfo("初始化数据库时成功。");
@@ -99,8 +111,7 @@ namespace YiQiDong.MySQL
                     AgentContext.LogError("初始化数据库时出错，原因：" + ret.Error);
                 }
             }
-
-            Process = Process.Start(MySqlUtils.GetMySqldPsi());
+            Process = Process.Start(MySqlUtils.GetMySqldPsi(imageFolder, dataFolder));
             Process.EnableRaisingEvents = true;
             Process.OutputDataReceived += Process_OutputDataReceived;
             Process.ErrorDataReceived += Process_ErrorDataReceived;
@@ -132,10 +143,13 @@ namespace YiQiDong.MySQL
                 AgentContext.LogInfo("正在修改自动生成的临时密码...");
                 var newPassword = Guid.NewGuid().ToString("N");
                 MySqlUtils.ModifyPassword(
+                    imageFolder,
+                    dataFolder,
                     "root",
                     Config.Instance.GetPassword(),
                     newPassword);
                 Config.Instance.UpdatePassword(newPassword);
+                AgentContext.LogInfo("当前密码：" + newPassword);
                 var connectionStringBuilder = new MySqlConnectionStringBuilder()
                 {
                     Server = Config.Instance.GetConnectHost(),
@@ -184,16 +198,19 @@ namespace YiQiDong.MySQL
         {
             Task.Delay(5000).ContinueWith(t =>
             {
-                innnerStart();
+                innnerStart(Config.Instance.GetDataFolder());
             });
         }
 
         private void Process_Exited(object sender, EventArgs e)
         {
             AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
-            if (!AgentContext.Container.AutoStart)
-                return;
-            delayStart();
+            if (AgentContext.IsContainerRuning)
+            {
+                if (!AgentContext.Container.AutoStart)
+                    return;
+                delayStart();
+            }
         }
 
         public override void Stop()
@@ -201,12 +218,12 @@ namespace YiQiDong.MySQL
             //发送shutdown
             string user;
             string password;
-
+            var dataFolder = Config.Instance.GetDataFolder();
             user = "root";
             password = Config.Instance.GetPassword();
             try
             {
-                var psi = MySqlUtils.GetMySqlAdminPsi(user, password, "shutdown");
+                var psi = MySqlUtils.GetMySqlAdminPsi(imageFolder, dataFolder, user, password, "shutdown");
                 var ret = ProcessUtils.ExecuteProcessStartInfo(psi);
                 if (ret.ExitCode != 0)
                     throw new IOException($"停止MySQL时出错，原因：{ret.Output}{ret.Error}");

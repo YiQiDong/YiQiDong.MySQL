@@ -10,9 +10,8 @@ namespace YiQiDong.MySQL.Utils;
 
 public class MySqlUtils
 {
-    public static void Init()
+    public static void Init(string imageFolder)
     {
-        var imageFolder = AgentContext.Container.ImageFolder;
         //Linux系统上添加LD_LIBRARY_PATH环境变量
         if (OperatingSystem.IsLinux())
         {
@@ -43,10 +42,8 @@ public class MySqlUtils
     }
 
 
-    public static ProcessStartInfo GetMySqldPsi(params string[] arguments)
+    public static ProcessStartInfo GetMySqldPsi(string imageFolder, string dataFolder, params string[] arguments)
     {
-        var imageFolder = AgentContext.Container.ImageFolder;
-        var dataFolder = Functions.Config.Instance.GetDataFolder();
         var process_filename = "";
         var process_arguments = new List<string>
             {
@@ -82,10 +79,8 @@ public class MySqlUtils
         return psi;
     }
 
-    public static ProcessStartInfo GetMySqlAdminPsi(string user, string password, params string[] arguments)
+    public static ProcessStartInfo GetMySqlAdminPsi(string imageFolder, string dataFolder, string user, string password, params string[] arguments)
     {
-        var imageFolder = AgentContext.Container.ImageFolder;
-        var dataFolder = Functions.Config.Instance.GetDataFolder();
         var process_filename = "";
         var process_arguments = new List<string>();
         if (OperatingSystem.IsWindows())
@@ -118,10 +113,11 @@ public class MySqlUtils
         return psi;
     }
 
-    public static void ModifyPassword(string user, string oldPassword, string newPassword)
+    public static void ModifyPassword(string imageFolder, string dataFolder, string user, string oldPassword, string newPassword)
     {
-
         var psi = GetMySqlAdminPsi(
+            imageFolder,
+            dataFolder,
             user,
             oldPassword,
             "password", newPassword);

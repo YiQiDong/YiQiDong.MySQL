@@ -57,6 +57,8 @@ namespace YiQiDong.MySQL.Functions
 
                 //先连接数据库修改密码
                 MySqlUtils.ModifyPassword(
+                    AgentContext.Container.ImageFolder,
+                    Config.Instance.GetDataFolder(),
                     "root",
                     oldPassword,
                     newPassword);
