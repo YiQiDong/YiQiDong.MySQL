@@ -63,8 +63,7 @@ namespace YiQiDong.MySQL.Functions
                     Name = "端口",
                     Type = FieldType.InputNumber,
                     Input_AllowBlank = false,
-                    Input_RegularExpression = "^[1-9]$|(^[1-9][0-9]$)|(^[1-9][0-9][0-9]$)|(^[1-9][0-9][0-9][0-9]$)|(^[1-6][0-5][0-5][0-3][0-5]$)",
-                    Value = request == null ? "9043" : request.GetFieldValue("tab", "ConnectionInfo", "Port")
+                    Value = request == null ? "3306" : request.GetFieldValue("tab", "ConnectionInfo", "Port")
                 });
                 connectionFieldChildren.Add(new FieldForGet()
                 {
