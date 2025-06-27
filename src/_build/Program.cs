@@ -26,7 +26,7 @@ var mysqlVersionDict = new Dictionary<string, string>()
     ["5.7"] = "5.7",
     ["8.0"] = "8.0",
     ["8.4"] = "8.4",
-    ["9.0"] = "9.0",
+    ["9.3"] = "9.3",
     [""] = "手动输入"
 };
 
@@ -58,7 +58,13 @@ else
             mysqlVersionStr = "5.7.44";
             break;
         case "8.0":
-            mysqlVersionStr = "8.0.41";
+            mysqlVersionStr = "8.0.42";
+            break;
+        case "8.4":
+            mysqlVersionStr = "8.4.5";
+            break;
+        case "9.3":
+            mysqlVersionStr = "9.3.0";
             break;
         default:
             var mysqlVersionHtml = httpClient.GetStringAsync($"https://dev.mysql.com/downloads/mysql/{mysqlVersion}.html?tpl=version&os=3&osva=").Result;
