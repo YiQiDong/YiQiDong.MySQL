@@ -16,8 +16,6 @@ else if (Environment.CurrentDirectory == Path.GetDirectoryName(Path.GetDirectory
 string URL_TEMPLATE_WINDOWS = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.zip";
 string URL_TEMPLATE_LINUX_V5_7 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.gz";
 string URL_TEMPLATE_LINUX_V8 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.xz";
-string DATA_FILE_V5_7 = $"src/{productDir}/Resource/data_v5.7.zip";
-string DATA_FILE_V8 = $"src/{productDir}/Resource/data_v8.zip";
 
 var mirrorUrl = "https://cdn.mysql.com/Downloads/";
 
@@ -184,7 +182,7 @@ foreach (var rid in rids)
                     if (version >= new Version(8, 4))
                         url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
                             version.Major, version.Minor, version.Build,
-                            rid == "linux-x64" ? "linux-glibc2.17-x86_64" : "linux-glibc2.17-aarch64");
+                            rid == "linux-x64" ? "linux-glibc2.17-x86_64" : "linux-glibc2.28-aarch64");
                     else
                         url = string.Format(URL_TEMPLATE_LINUX_V8, mirrorUrl,
                             version.Major, version.Minor, version.Build,
