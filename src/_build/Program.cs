@@ -52,7 +52,7 @@ else
 {
     Console.WriteLine($"获取MySQL {mysqlVersion}最新版本号中...");
     string mysqlVersionStr = null;
-    switch(mysqlVersion)
+    switch (mysqlVersion)
     {
         case "5.7":
             mysqlVersionStr = "5.7.44";
@@ -299,12 +299,10 @@ foreach (var rid in rids)
                     Thread.Sleep(1000);
                     Directory.Move(Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), buildFolder);
                 }
-                switch (rid)
-                {
-                    case "linux-x64":
-                        QbFolder.Copy($"src/{productDir}/Resource/mysql-linux_x64/lib", Path.Combine(buildFolder, "lib"));
-                        break;
-                }
+
+                var extraLibFolder = $"src/{productDir}/Resource/{rid}/lib";
+                if (Directory.Exists(extraLibFolder))
+                    QbFolder.Copy(extraLibFolder, Path.Combine(buildFolder, "lib"));
                 break;
             }
     }
