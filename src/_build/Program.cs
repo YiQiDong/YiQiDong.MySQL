@@ -339,7 +339,7 @@ foreach (var rid in rids)
     File.WriteAllText(imageMetaFile, JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions() { WriteIndented = true }));
 
     var outFile = $"bin/MySQL-{versionString}-{rid}_{buildTime.ToString("yyyyMMddHHmmss")}.ymg";
-    Console.WriteLine($"正在制作弈启动镜像[{rid}]...");
+    Console.WriteLine($"正在制作易启动镜像[{rid}]...");
     using (var archive = SharpCompress.Archives.Zip.ZipArchive.Create())
     {
         archive.AddAllFromDirectory(buildFolder);
