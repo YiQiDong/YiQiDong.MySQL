@@ -2,7 +2,6 @@
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using System.IO.Compression;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
