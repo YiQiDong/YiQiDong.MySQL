@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="YiQiDong.MySQL/YiQiDong.MySQL.csproj" />
+  <Project Path="_build/_build.csproj" />
+</Solution>

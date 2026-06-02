@@ -4,4 +4,4 @@
 
 最新版本下载
 -----
-https://cnb.cool/scbeta/YiQiDong/YiQiDong.MySQL/-/releases
+https://github.com/YiQiDong/YiQiDong.MySQL/releases
