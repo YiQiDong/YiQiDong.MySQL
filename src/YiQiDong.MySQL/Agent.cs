@@ -216,6 +216,15 @@ namespace YiQiDong.MySQL
         private void Process_Exited(object sender, EventArgs e)
         {
             AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
+            if (OperatingSystem.IsWindows())
+            {
+                switch (Convert.ToUInt32(Process.ExitCode))
+                {
+                    case 0xC0000135:
+                        AgentContext.LogInfo($"DLL文件加载失败，请确保已安装正确的Visual C++运行库。下载地址：https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist");
+                        break;
+                }
+            }
             if (AgentContext.IsContainerRuning)
             {
                 if (!AgentContext.Container.AutoStart)
