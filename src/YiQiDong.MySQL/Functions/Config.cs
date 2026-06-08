@@ -1,13 +1,9 @@
 ﻿using Quick.Fields;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using YiQiDong.MySQL.Utils;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
-using YiQiDong.Core.Utils;
 using YiQiDong.Agent;
+using Quick.Utils;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -234,7 +230,14 @@ namespace YiQiDong.MySQL.Functions
             return list;
         }
 
-        public override FieldForGet[] Get()
+        public override FieldForGet[] Execute(FunctionRequest request)
+        {
+            if(request==null)
+                return Get();
+            return Post(request);
+        }
+
+        private FieldForGet[] Get()
         {
             var isReadOnly = AgentContext.Container.AutoStart;
             RefreshProperties(GetDataFolder());
@@ -244,7 +247,7 @@ namespace YiQiDong.MySQL.Functions
             return list.ToArray();
         }
 
-        public override FieldForGet[] Post(FunctionRequest request)
+        private FieldForGet[] Post(FunctionRequest request)
         {
             if (request.IsFieldIdsMatch("DataFolder"))
             {

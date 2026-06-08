@@ -211,7 +211,7 @@ foreach (var rid in rids)
                     }
 
                     //解压tar文件
-                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarArchiveFile))
+                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.OpenArchive(tarArchiveFile))
                     {
                         foreach (var entry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
@@ -267,7 +267,7 @@ foreach (var rid in rids)
                     using (var fs = File.OpenWrite(tarArchiveFile))
                         gzStream.CopyTo(fs);
                     //解压tar文件
-                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.Open(tarArchiveFile))
+                    using (var tarArchive = SharpCompress.Archives.Tar.TarArchive.OpenArchive(tarArchiveFile))
                     {
                         foreach (var entry in tarArchive.Entries.Where(entry => !entry.IsDirectory))
                         {
@@ -339,7 +339,7 @@ foreach (var rid in rids)
 
     var outFile = $"bin/MySQL-{versionString}-{rid}_{buildTime.ToString("yyyyMMddHHmmss")}.ymg";
     Console.WriteLine($"正在制作易启动镜像[{rid}]...");
-    using (var archive = SharpCompress.Archives.Zip.ZipArchive.Create())
+    using (var archive = SharpCompress.Archives.Zip.ZipArchive.CreateArchive())
     {
         archive.AddAllFromDirectory(buildFolder);
         archive.SaveTo(outFile, CompressionType.LZMA);

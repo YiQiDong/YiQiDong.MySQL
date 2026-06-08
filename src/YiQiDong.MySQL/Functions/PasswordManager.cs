@@ -1,11 +1,7 @@
 ﻿using Quick.Fields;
-using System;
-using System.Collections.Generic;
 using YiQiDong.Protocol.V1.Model;
 using YiQiDong.Core;
 using YiQiDong.Agent;
-using Quick.Shell.Utils;
-using System.IO;
 using YiQiDong.MySQL.Utils;
 
 namespace YiQiDong.MySQL.Functions
@@ -13,7 +9,7 @@ namespace YiQiDong.MySQL.Functions
     class PasswordManager : AbstractFunction
     {
         public override string Name => "密码管理";
-
+        public override bool IsVisiable()=> AgentContext.Container.AutoStart;
         private List<FieldForGet> innerGet(FunctionRequest request)
         {
             List<FieldForGet> list = new List<FieldForGet>();
@@ -31,7 +27,14 @@ namespace YiQiDong.MySQL.Functions
             return list;
         }
 
-        public override FieldForGet[] Get()
+        public override FieldForGet[] Execute(FunctionRequest request)
+        {
+            if(request==null)
+                return Get();
+            return Post(request);
+        }
+
+        private FieldForGet[] Get()
         {
             //当容器未启动时，此功能不可用
             if (!AgentContext.Container.AutoStart)
@@ -47,7 +50,7 @@ namespace YiQiDong.MySQL.Functions
             return list.ToArray();
         }
 
-        public override FieldForGet[] Post(FunctionRequest request)
+        private FieldForGet[] Post(FunctionRequest request)
         {
             var list = innerGet(request);
             if (request.IsFieldIdsMatch("Save"))

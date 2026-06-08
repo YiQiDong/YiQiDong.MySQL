@@ -6,6 +6,7 @@ using MySqlConnector;
 using Quick.Shell.Utils;
 using YiQiDong.MySQL.Functions;
 using YiQiDong.MySQL.Utils;
+using Quick.Utils;
 
 namespace YiQiDong.MySQL
 {
@@ -50,7 +51,7 @@ namespace YiQiDong.MySQL
             {
                 imageFolder = AgentContext.Container.ImageFolder;
                 AddFunction(new Config());
-                AddFunction(new PasswordManager(), true);
+                AddFunction(new PasswordManager());
                 AddFunction(new SqlQuery());
             }
             else

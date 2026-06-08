@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using YiQiDong.Protocol.V1.Model;
+﻿using YiQiDong.Protocol.V1.Model;
 using Quick.Fields;
 using YiQiDong.Core;
-using YiQiDong.Core.Utils;
 using MySqlConnector;
+using Quick.Utils;
 
 namespace YiQiDong.MySQL.Functions
 {
@@ -119,12 +117,19 @@ namespace YiQiDong.MySQL.Functions
             return list;
         }
 
-        public override FieldForGet[] Get()
+        public override FieldForGet[] Execute(FunctionRequest request)
+        {
+            if(request==null)
+                return Get();
+            return Post(request);
+        }
+
+        private FieldForGet[] Get()
         {
             return innerGet(null).ToArray();
         }
 
-        public override FieldForGet[] Post(FunctionRequest request)
+        private FieldForGet[] Post(FunctionRequest request)
         {
             var list = innerGet(request);
 
