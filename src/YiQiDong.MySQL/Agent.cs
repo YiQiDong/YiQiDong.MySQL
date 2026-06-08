@@ -116,17 +116,19 @@ namespace YiQiDong.MySQL
                 }
                 else
                 {
-                    AgentContext.LogError("初始化数据库时出错，原因：" + ret.Error);
+                    AgentContext.LogError($"初始化数据库时出错。退出码：{ret.ExitCode}，消息：{ret.Error}");
+                    DetectProcessExitCode(ret.ExitCode);
+                    return;
                 }
             }
             Process = Process.Start(MySqlUtils.GetMySqldPsi(imageFolder, dataFolder));
+            AgentContext.LogInfo("MySQL监听端口：" + Config.Instance.GetConnectPort());
+            AgentContext.LogInfo($"MySQL服务进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.EnableRaisingEvents = true;
             Process.OutputDataReceived += Process_OutputDataReceived;
             Process.ErrorDataReceived += Process_ErrorDataReceived;
             Process.BeginOutputReadLine();
             Process.BeginErrorReadLine();
-            AgentContext.LogInfo("MySQL监听端口：" + Config.Instance.GetConnectPort());
-            AgentContext.LogInfo($"MySQL服务进程[Id:{Process.Id},Name:{Process.ProcessName}]已经启动。");
             Process.Exited += Process_Exited;
 
             Stopwatch stopwatch = new Stopwatch();
@@ -214,18 +216,24 @@ namespace YiQiDong.MySQL
             });
         }
 
-        private void Process_Exited(object sender, EventArgs e)
+        private void DetectProcessExitCode(int exitCode)
         {
-            AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
             if (OperatingSystem.IsWindows())
             {
-                switch (Convert.ToUInt32(Process.ExitCode))
+                switch (exitCode)
                 {
-                    case 0xC0000135:
+                    //0xC0000135
+                    case -1073741515:
                         AgentContext.LogInfo($"DLL文件加载失败，请确保已安装正确的Visual C++运行库。下载地址：https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist");
                         break;
                 }
             }
+        }
+
+        private void Process_Exited(object sender, EventArgs e)
+        {
+            AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
+            DetectProcessExitCode(Process.ExitCode);
             if (AgentContext.IsContainerRuning)
             {
                 if (!AgentContext.Container.AutoStart)
