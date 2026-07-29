@@ -11,8 +11,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MySqlConnector" Version="2.6.0" />
-		<PackageReference Include="YiQiDong.Core" Version="2026.16.507" />
+		<PackageReference Include="MySqlConnector" Version="2.6.1" />
+		<PackageReference Include="YiQiDong.Core" Version="2026.24.729" />
 	</ItemGroup>
 
 	<ItemGroup>

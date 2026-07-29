@@ -15,36 +15,37 @@ namespace YiQiDong.MySQL.Functions
             List<FieldForGet> list = new List<FieldForGet>();
 
             List<FieldForGet> spliterFieldChildren = new List<FieldForGet>();
-            List<FieldForGet> connectionFieldChildren = new List<FieldForGet>();
-
-            connectionFieldChildren.Add(new FieldForGet()
-            {
-                Id = "ConnectTo",
-                Name = "连接到",
-                Type = FieldType.InputSelect,
-                Input_AllowBlank = false,
-                PostOnChanged = true,
-                InputSelect_Options = new Dictionary<string, string>()
+            List<FieldForGet> connectionFieldChildren =
+            [
+                new FieldForGet()
                 {
-                    ["Self"] = "当前容器",
-                    ["Other"] = "其他服务"
+                    Id = "ConnectTo",
+                    Name = "连接到",
+                    Type = FieldType.InputSelect,
+                    Input_AllowBlank = false,
+                    PostOnChanged = true,
+                    InputSelect_Options = new Dictionary<string, string>()
+                    {
+                        ["Self"] = "当前容器",
+                        ["Other"] = "其他服务"
+                    },
+                    Value = request == null ? "Self" : request.GetFieldValue("ConnectionInfo", "ConnectTo")
                 },
-                Value = request == null ? "Self" : request.GetFieldValue("ConnectionInfo", "ConnectTo")
-            });
-            connectionFieldChildren.Add(new FieldForGet()
-            {
-                Id = "Charset",
-                Name = "编码",
-                Type = FieldType.InputSelect,
-                Input_AllowBlank = false,
-                InputSelect_Options = new Dictionary<string, string>()
+                new FieldForGet()
                 {
-                    ["utf8"] = "utf8",
-                    ["gb2312"] = "gb2312",
-                    ["utf8mb4"] = "utf8mb4"
+                    Id = "Charset",
+                    Name = "编码",
+                    Type = FieldType.InputSelect,
+                    Input_AllowBlank = false,
+                    InputSelect_Options = new Dictionary<string, string>()
+                    {
+                        ["utf8"] = "utf8",
+                        ["gb2312"] = "gb2312",
+                        ["utf8mb4"] = "utf8mb4"
+                    },
+                    Value = request == null ? "utf8" : request.GetFieldValue("ConnectionInfo", "Charset")
                 },
-                Value = request == null ? "utf8" : request.GetFieldValue("ConnectionInfo", "Charset")
-            });
+            ];
             if (request != null && request.GetFieldValue("ConnectionInfo", "ConnectTo") != "Self")
             {
                 connectionFieldChildren.Add(new FieldForGet()
@@ -93,8 +94,8 @@ namespace YiQiDong.MySQL.Functions
                 Id = "Query",
                 Name = "查询",
                 Type = FieldType.ContainerGroup,
-                Children = new FieldForGet[]
-                {
+                Children =
+                [
                     new FieldForGet()
                     {
                         Id = "Script",
@@ -105,7 +106,7 @@ namespace YiQiDong.MySQL.Functions
                         Value = request == null ? null : request.GetFieldValue("Query","Script")
                     },
                     new FieldForGet() { Id = "Execute", Name = "执行",MarginBottom=3, Type = FieldType.Button }
-                }
+                ]
             });
 
             list.Add(new FieldForGet()

@@ -321,10 +321,10 @@ foreach (var rid in rids)
         Name = "MySQL",
         Version = versionString,
         BuildTime = buildTime.ToString("yyyy-MM-dd HH:mm:ss"),
-        Tags = new[] { "数据库" },
+        Tags = ["数据库"],
         Description = "MySQL 是最流行的关系型数据库管理系统，在 WEB 应用方面 MySQL 是最好的 RDBMS(Relational Database Management System：关系数据库管理系统)应用软件之一。",
-        Platform = new[] { rid },
-        Path = new[] { "bin" },
+        Platform = [rid],
+        Path = ["bin"],
         Environment = new Dictionary<string, string>()
         {
             ["LD_LIBRARY_PATH"] = "lib"
@@ -335,7 +335,7 @@ foreach (var rid in rids)
         imageInfo.AgentExecute = $"{productDir}.exe";
     else
         imageInfo.AgentExecute = productDir;
-    File.WriteAllText(imageMetaFile, JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions() { WriteIndented = true }));
+    File.WriteAllText(imageMetaFile, imageInfo.ToJson());
 
     var outFile = $"bin/MySQL-{versionString}-{rid}_{buildTime.ToString("yyyyMMddHHmmss")}.ymg";
     Console.WriteLine($"正在制作易启动镜像[{rid}]...");
