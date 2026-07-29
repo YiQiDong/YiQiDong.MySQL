@@ -2,15 +2,14 @@
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using System.IO.Compression;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 var productDir = "YiQiDong.MySQL";
 var appFolder = QbFolder.GetAppFolder();
 if (Environment.CurrentDirectory == appFolder)
-    Environment.CurrentDirectory = Path.GetFullPath("../../../../../");
+    Environment.CurrentDirectory = Path.GetFullPath("../../../../");
 else if (Environment.CurrentDirectory == Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(appFolder))))
-    Environment.CurrentDirectory = Path.GetFullPath("../../");
+    Environment.CurrentDirectory = Path.GetFullPath("../");
 //https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.42-winx64.zip
 string URL_TEMPLATE_WINDOWS = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.zip";
 string URL_TEMPLATE_LINUX_V5_7 = "{0}MySQL-{1}.{2}/mysql-{1}.{2}.{3}-{4}.tar.gz";
@@ -303,7 +302,7 @@ foreach (var rid in rids)
                     Directory.Move(Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(file))), buildFolder);
                 }
 
-                var extraLibFolder = $"src/{productDir}/Resource/{rid}/lib";
+                var extraLibFolder = $"{productDir}/Resource/{rid}/lib";
                 if (Directory.Exists(extraLibFolder))
                     QbFolder.Copy(extraLibFolder, Path.Combine(buildFolder, "lib"));
                 break;
@@ -312,7 +311,7 @@ foreach (var rid in rids)
     Directory.Delete(tmpFolder, true);
 
     Console.WriteLine("正在发布YiQiDong.MySQL项目...");
-    QbCommand.Run("dotnet", $"publish src/{productDir} -c Release -o {buildFolder} -r {rid}");
+    QbCommand.Run("dotnet", $"publish {productDir} -c Release -o {buildFolder} -r {rid}");
     var versionString = version.ToString();
     var imageMetaFile = Path.Combine(buildFolder, "YiQiDong.Image.json");
     var imageInfo = new YiQiDong.Protocol.V1.Model.ImageInfo()
