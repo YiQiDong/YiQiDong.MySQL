@@ -176,7 +176,6 @@ namespace YiQiDong.MySQL.Functions
                         SslMode = MySqlSslMode.None,
                         AllowPublicKeyRetrieval = true
                     };
-                    //先连接数据库修改密码
                     using (var connection = new MySqlConnection(connectionStringBuilder.ConnectionString))
                     {
                         connection.Open();
@@ -254,7 +253,7 @@ namespace YiQiDong.MySQL.Functions
                                 });
                             } while (reader.NextResult());
                             tabContainerField.Children = tabContainerFieldChildList;
-                            list.Add(tabContainerField);
+                            list[0].Children[1].Children.Add(tabContainerField);
                         }
                     }
                 }
