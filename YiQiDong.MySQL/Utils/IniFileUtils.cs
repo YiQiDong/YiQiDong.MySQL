@@ -28,7 +28,7 @@ namespace YiQiDong.MySQL.Utils
             }
             return properties;
         }
-        public static void Save(string file, FieldForPost[] fields)
+        public static void Save(string file, List<FieldForPost> fields)
         {
             Save(
                 file,

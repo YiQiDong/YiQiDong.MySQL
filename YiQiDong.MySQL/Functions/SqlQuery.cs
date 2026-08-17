@@ -86,7 +86,7 @@ namespace YiQiDong.MySQL.Functions
                 Id = "ConnectionInfo",
                 Name = "连接信息",
                 Type = FieldType.ContainerGroup,
-                Children = connectionFieldChildren.ToArray()
+                Children = connectionFieldChildren
             });
 
             spliterFieldChildren.Add(new FieldForGet()
@@ -112,24 +112,24 @@ namespace YiQiDong.MySQL.Functions
             list.Add(new FieldForGet()
             {
                 Type = FieldType.ContainerTab,
-                Children = spliterFieldChildren.ToArray()
+                Children = spliterFieldChildren
             });
             return list;
         }
 
-        public override FieldForGet[] Execute(FunctionRequest request)
+        public override List<FieldForGet> Execute(FunctionRequest request)
         {
             if(request==null)
                 return Get();
             return Post(request);
         }
 
-        private FieldForGet[] Get()
+        private List<FieldForGet> Get()
         {
-            return innerGet(null).ToArray();
+            return innerGet(null);
         }
 
-        private FieldForGet[] Post(FunctionRequest request)
+        private List<FieldForGet> Post(FunctionRequest request)
         {
             var list = innerGet(request);
 
@@ -140,7 +140,7 @@ namespace YiQiDong.MySQL.Functions
                 if (string.IsNullOrEmpty(script))
                 {
                     list.Add(new FieldForGet() { Name = "错误", Description = "未输入要执行的脚本。", Type = FieldType.MessageBox });
-                    return list.ToArray();
+                    return list;
                 }
                 string host = null;
                 int port = 0;
@@ -212,7 +212,7 @@ namespace YiQiDong.MySQL.Functions
                                             Value = reader.GetName(i)
                                         });
                                     }
-                                    headTr.Children = headTrChildList.ToArray();
+                                    headTr.Children = headTrChildList;
                                     trFieldList.Add(headTr);
 
                                     while (reader.Read())
@@ -228,7 +228,7 @@ namespace YiQiDong.MySQL.Functions
                                                 Value = reader.GetValue(i)?.ToString()
                                             });
                                         }
-                                        rowTr.Children = rowTrChildList.ToArray();
+                                        rowTr.Children = rowTrChildList;
                                         trFieldList.Add(rowTr);
                                     }
                                 }
@@ -238,22 +238,22 @@ namespace YiQiDong.MySQL.Functions
                                     {
                                         Type = FieldType.ContainerTableTr,
                                         Value = "影响的记录数",
-                                        Children = new[]
-                                        {
+                                        Children = 
+                                        [
                                             new FieldForGet(){ Type = FieldType.ContainerTableTd,Value = reader.RecordsAffected.ToString() }
-                                        }
+                                        ]
                                     });
                                 }
-                                tableField.Children = trFieldList.ToArray();
+                                tableField.Children = trFieldList;
                                 tabContainerFieldChildList.Add(new FieldForGet()
                                 {
                                     Id = "result" + readerIndex,
                                     Type = FieldType.ContainerGroup,
                                     Name = "结果" + readerIndex,
-                                    Children = new[] { tableField }
+                                    Children = [ tableField ]
                                 });
                             } while (reader.NextResult());
-                            tabContainerField.Children = tabContainerFieldChildList.ToArray();
+                            tabContainerField.Children = tabContainerFieldChildList;
                             list.Add(tabContainerField);
                         }
                     }
@@ -263,7 +263,7 @@ namespace YiQiDong.MySQL.Functions
                     list.Add(new FieldForGet() { Name = "错误", Description = ExceptionUtils.GetExceptionString(ex), Input_ReadOnly = true, Type = FieldType.Alert });
                 }
             }
-            return list.ToArray();
+            return list;
         }
     }
 }

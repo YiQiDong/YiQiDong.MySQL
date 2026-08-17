@@ -27,30 +27,29 @@ namespace YiQiDong.MySQL.Functions
             return list;
         }
 
-        public override FieldForGet[] Execute(FunctionRequest request)
+        public override List<FieldForGet> Execute(FunctionRequest request)
         {
             if(request==null)
                 return Get();
             return Post(request);
         }
 
-        private FieldForGet[] Get()
+        private List<FieldForGet> Get()
         {
             //当容器未启动时，此功能不可用
             if (!AgentContext.Container.AutoStart)
             {
-                return new FieldForGet[]
-                {
+                return [
                     new FieldForGet() { Name = "当前功能不可用", Description = $"容器尚未启动，当前功能不可用。", Input_ReadOnly = true, Type = FieldType.Alert }
-                };
+                ];
             }
 
             var list = innerGet(null);
             addSaveButton(list);
-            return list.ToArray();
+            return list;
         }
 
-        private FieldForGet[] Post(FunctionRequest request)
+        private List<FieldForGet> Post(FunctionRequest request)
         {
             var list = innerGet(request);
             if (request.IsFieldIdsMatch("Save"))
@@ -89,7 +88,7 @@ namespace YiQiDong.MySQL.Functions
                 }
                 addSaveButton(list);
             }
-            return list.ToArray();
+            return list;
         }
 
         private void addSaveButton(List<FieldForGet> list)

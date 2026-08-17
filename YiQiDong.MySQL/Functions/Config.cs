@@ -230,24 +230,24 @@ namespace YiQiDong.MySQL.Functions
             return list;
         }
 
-        public override FieldForGet[] Execute(FunctionRequest request)
+        public override List<FieldForGet> Execute(FunctionRequest request)
         {
             if(request==null)
                 return Get();
             return Post(request);
         }
 
-        private FieldForGet[] Get()
+        private List<FieldForGet> Get()
         {
             var isReadOnly = AgentContext.Container.AutoStart;
             RefreshProperties(GetDataFolder());
             var list = innerGet(null, isReadOnly);
             if (!isReadOnly)
                 addSaveButton(list);
-            return list.ToArray();
+            return list;
         }
 
-        private FieldForGet[] Post(FunctionRequest request)
+        private List<FieldForGet> Post(FunctionRequest request)
         {
             if (request.IsFieldIdsMatch("DataFolder"))
             {
@@ -256,7 +256,7 @@ namespace YiQiDong.MySQL.Functions
                     RefreshProperties(containerFolder);
                 else
                     RefreshProperties(dataFolder);
-                request.Fields = innerGet(null).Select(t => t.ToPost()).ToArray();
+                request.Fields = innerGet(null).Select(t => t.ToPost()).ToList();
                 request.Fields[0].Value = dataFolder;
             }
             var list = innerGet(request);
@@ -311,7 +311,7 @@ namespace YiQiDong.MySQL.Functions
                 }
             }
             addSaveButton(list);
-            return list.ToArray();
+            return list;
         }
 
         private void addSaveButton(List<FieldForGet> list)
