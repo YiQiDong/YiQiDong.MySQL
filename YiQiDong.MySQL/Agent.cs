@@ -47,7 +47,7 @@ namespace YiQiDong.MySQL
 
             base.Init();
 
-            if(AgentContext.IsContainerRuning)
+            if (AgentContext.IsContainerRuning)
             {
                 imageFolder = AgentContext.Container.ImageFolder;
                 AddFunction(new Config());
@@ -63,29 +63,11 @@ namespace YiQiDong.MySQL
             MySqlUtils.Init(imageFolder);
         }
 
-        public override void Start()
+        protected override void Start()
         {
             var dataFolder = Config.Instance.GetDataFolder();
             Config.Instance.RefreshProperties(dataFolder);
-            Task.Run(() =>
-            {
-                try
-                {
-                    innnerStart(dataFolder);
-                    base.Start();
-                }
-                catch (Exception ex)
-                {
-                    AgentContext.LogError($"启动容器时失败，原因：{ex}");
-                }
-            });
-        }
 
-        internal void innnerStart(string dataFolder)
-        {
-            if (AgentContext.IsContainerRuning && !AgentContext.Container.AutoStart)
-                return;
-                
             MySqlServiceStarted = false;
             //检查复制my.ini文件
             FileSystemUtils.CopyFile(Path.Combine(imageFolder, "my.ini"), dataFolder);
@@ -208,14 +190,6 @@ namespace YiQiDong.MySQL
                 MySqlServiceStarted = serveiceStartLogKeys.Any(t => t.All(u => line.Contains(u)));
         }
 
-        private void delayStart()
-        {
-            Task.Delay(5000).ContinueWith(t =>
-            {
-                innnerStart(Config.Instance.GetDataFolder());
-            });
-        }
-
         private void DetectProcessExitCode(int exitCode)
         {
             if (OperatingSystem.IsWindows())
@@ -234,16 +208,23 @@ namespace YiQiDong.MySQL
         {
             AgentContext.LogInfo($"进程[Id:{Process.Id},Name:{Process.ProcessName}]已经退出，退出码：{Process.ExitCode}。");
             DetectProcessExitCode(Process.ExitCode);
-            if (AgentContext.IsContainerRuning)
+            if (!AgentContext.IsContainerRuning)
+                return;
+            if (!AgentContext.Container.AutoStart)
+                return;
+            Task.Delay(5000, AgentStartCancellationToken).ContinueWith(t =>
             {
-                if (!AgentContext.Container.AutoStart)
+                if (t.IsCanceled)
                     return;
-                delayStart();
-            }
+                Start();
+            });
         }
 
-        public override void Stop()
+        protected override void Stop()
         {
+            var process = Process;
+            if (process == null || process.HasExited)
+                return;
             //发送shutdown
             string user;
             string password;
@@ -257,17 +238,17 @@ namespace YiQiDong.MySQL
                 if (ret.ExitCode != 0)
                     throw new IOException($"停止MySQL时出错，原因：{ret.Output}{ret.Error}");
                 //等待30秒
-                Process.WaitForExit(30 * 1000);
+                process.WaitForExit(30 * 1000);
             }
             catch (Exception ex)
             {
                 AgentContext.LogError(ExceptionUtils.GetExceptionMessage(ex));
             }
-            if (Process == null
-                || Process.HasExited)
+            process = Process;
+            if (process == null
+                || process.HasExited)
                 return;
-            Process.Kill(true);
-            base.Stop();
+            process.Kill(true);
         }
     }
 }
